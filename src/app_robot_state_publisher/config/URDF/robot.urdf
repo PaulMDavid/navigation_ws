@@ -980,4 +980,15 @@
       <state_interface name="effort"/>
     </joint>
   </ros2_control>
+  <joint name="os_sensor_bridge_joint" type="fixed">
+   <parent link="os0_lidar_link"/>
+   <child link="os_sensor"/>
+  </joint>
+  <link name="os_sensor"/>
+
+  <joint name="zed_camera_bridge_joint" type="fixed">
+    <parent link="zed_2i_link"/>
+    <child link="zed_camera_link"/>
+  </joint>
+  <link name="zed_camera_link"/>
 </robot>

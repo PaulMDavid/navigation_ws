@@ -22,20 +22,21 @@ services:
       DISPLAY: ${DISPLAY}
       QT_X11_NO_MITSHM: "1"
       XDG_RUNTIME_DIR: /tmp/runtime-root
-
+      ROS_DOMAIN_ID: 0
     network_mode: host
     privileged: true
     working_dir: /workspace
 
     command: >
-       ros2 launch rtabmap_launch rtabmap.launch.py
-       rgb_topic:=/zed/zed_node/rgb/color/rect/image/compressed
-       depth_topic:=/zed/zed_node/depth/depth_registered/compressed
-       camera_info_topic:=/zed/zed_node/depth/camera_info
+       ros2 launch rtabmap_launch rtabmap.launch.py 
+       rgb_topic:=/zed2i/zed_node/rgb/color/rect/image 
+       depth_topic:=/zed2i/zed_node/depth/depth_registered
+       camera_info_topic:=/zed2i/zed_node/rgb/color/rect/camera_info
        scan_cloud_topic:=/ouster/points
        frame_id:=chassis_link
        approx_sync:=true
-       rtabmap_viz:=true
+       rtabmap_viz:=false
+       database_path:=/workspace/rtabmap-databases/rtabmap.db
        args:="--delete_db_on_start"
        params_file:=/workspace/config/params.yaml
-
+   # command: tail -f /dev/null

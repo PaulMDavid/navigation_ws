@@ -1,0 +1,138 @@
+services:
+  app_aruco_detector:
+    build:
+      context: ./app_aruco_detector
+      dockerfile: Dockerfile
+      args:
+        ROS_DISTRO: humble
+    container_name: aruco_detector_ros_container
+    tty: true
+    stdin_open: true
+    volumes:
+      - ./app_aruco_detector:/workspace/src/aruco_detector
+      - ./app_aruco_detector/data:/workspace/data
+      - ./app_aruco_detector/config:/workspace/config
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+    environment:
+      - ROS_DISTRO=humble
+      - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+      - DEBIAN_FRONTEND=noninteractive
+      - DISPLAY=${DISPLAY}
+      - QT_X11_NO_MITSHM=1
+      - XDG_RUNTIME_DIR=/tmp/runtime-root
+    network_mode: host
+    privileged: true
+    working_dir: /workspace
+    command: ros2 launch aruco_detector aruco_detector.launch.py
+
+  app_lidar_ouster_ros:
+    build:
+      context: ./app_lidar_ouster_ros
+      dockerfile: Dockerfile
+      args:
+        ROS_DISTRO: humble
+    container_name: app_ouster_lidar_container
+    tty: true
+    stdin_open: true
+    volumes:
+      - ./app_lidar_ouster_ros/ouster-ros:/workspace/src/ouster-ros
+      - ./app_lidar_ouster_ros/ouster-sensor-msgs:/workspace/src/ouster-sensor-msgs
+      - ./app_lidar_ouster_ros/LICENSE:/workspace/src/LICENSE
+      - ./app_lidar_ouster_ros/data:/workspace/data
+      - ./app_lidar_ouster_ros/config:/workspace/config
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - ./app_lidar_ouster_ros/ouster-ros/config:/workspace/install/ouster_ros/share/ouster_ros/config
+    environment:
+      - ROS_DISTRO=humble
+      - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+      - DEBIAN_FRONTEND=noninteractive
+      - DISPLAY=${DISPLAY}
+      - QT_X11_NO_MITSHM=1
+      - XDG_RUNTIME_DIR=/tmp/runtime-root
+      - ROS_DOMAIN_ID=0
+      - OUSTER_SENSOR_HOSTNAME=169.254.61.114
+      - OUSTER_LIDAR_MODE=1024x10
+    network_mode: host
+    privileged: true
+    working_dir: /workspace
+    command: ros2 launch ouster_ros driver.launch.py sensor_hostname:=169.254.61.114 lidar_mode:=1024x10 viz:=false
+
+  app_robot_state_publisher:
+    build:
+      context: ./app_robot_state_publisher
+      dockerfile: Dockerfile
+      args:
+        ROS_DISTRO: humble
+    container_name: robot_state_publisher_container
+    tty: true
+    stdin_open: true
+    volumes:
+      - ./app_robot_state_publisher:/workspace/src/robot_state_publisher
+      - ./app_robot_state_publisher/data:/workspace/data
+      - ./app_robot_state_publisher/config:/workspace/config
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+    environment:
+      - ROS_DISTRO=humble
+      - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+      - DEBIAN_FRONTEND=noninteractive
+      - DISPLAY=${DISPLAY}
+      - QT_X11_NO_MITSHM=1
+      - XDG_RUNTIME_DIR=/tmp/runtime-root
+      - ROS_DOMAIN_ID=2
+    network_mode: host
+    privileged: true
+    working_dir: /workspace
+    command: ros2 run robot_state_publisher robot_state_publisher config/URDF/robot.urdf
+
+  app_rtab_map:
+    build:
+      context: ./app_rtab_map
+      dockerfile: Dockerfile
+      args:
+        ROS_DISTRO: humble
+    container_name: rtab_map_container
+    volumes:
+      - ./app_rtab_map:/workspace
+      - ./app_rtab_map/data:/workspace/data
+      - ./app_rtab_map/config:/workspace/config
+      - ./app_rtab_map/rtabmap-databases:/root/Documents/RTAB-Map
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+    environment:
+      ROS_DISTRO: humble
+      RMW_IMPLEMENTATION: rmw_cyclonedds_cpp
+      DEBIAN_FRONTEND: noninteractive
+      DISPLAY: ${DISPLAY}
+      QT_X11_NO_MITSHM: "1"
+      XDG_RUNTIME_DIR: /tmp/runtime-root
+    network_mode: host
+    privileged: true
+    working_dir: /workspace
+    command: >
+      ros2 launch rtabmap_launch rtabmap.launch.py
+      rgb_topic:=/zed/zed_node/rgb/color/rect/image/compressed
+      depth_topic:=/zed/zed_node/depth/depth_registered/compressed
+      camera_info_topic:=/zed/zed_node/depth/camera_info
+      scan_cloud_topic:=/ouster/points
+      frame_id:=chassis_link
+      approx_sync:=true
+      rtabmap_viz:=true
+      args:="--delete_db_on_start"
+      params_file:=/workspace/config/params.yaml
+
+  app_zed2i_camera:
+    image: app_zed2i_camera-zed_camera:latest
+    pull_policy: never
+    container_name: zed2i_camera_ros_container
+    runtime: nvidia
+    privileged: true
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,video,utility
+    devices:
+      - /dev/video0:/dev/video0
+      - /dev/bus/usb:/dev/bus/usb
+    network_mode: host
+    stdin_open: true
+    tty: true
+    volumes:
+      - ../rosbags:/ros2_ws/rosbags
