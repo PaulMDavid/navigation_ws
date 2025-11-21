@@ -19,6 +19,14 @@ rosdep install --from-paths src --ignore-src -r -y
 # Build the workspace
 colcon build --symlink-install
 
+# Fix ament_python package libexec directory issue
+if [ -d "install/app_template" ]; then
+    mkdir -p install/app_template/lib/app_template
+    if [ -f "install/app_template/bin/template_node" ]; then
+        ln -sf ../../bin/template_node install/app_template/lib/app_template/template_node
+    fi
+fi
+
 # Source environment setup for all shells
 echo "source /workspace/install/setup.bash" >> ~/.bashrc
 
