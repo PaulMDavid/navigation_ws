@@ -63,10 +63,22 @@ class ArucoDetectorNode(Node):
             
             if ids is not None:
                 # Marker detected
+                marker_data = []
+                for i, marker_id in enumerate(ids.flatten()):
+                    # Calculate center (u, v) of the marker
+                    corner_points = corners[i][0]
+                    center_u = np.mean(corner_points[:, 0])
+                    center_v = np.mean(corner_points[:, 1])
+                    marker_data.append({
+                        'id': int(marker_id),
+                        'center_u': float(center_u),
+                        'center_v': float(center_v)
+                    })
+                
                 marker_msg = String()
-                marker_msg.data = f'Marker detected: {ids.flatten().tolist()}'
+                marker_msg.data = str(marker_data)
                 self.marker_publisher.publish(marker_msg)
-                self.get_logger().info(f'Marker detected: {ids.flatten().tolist()}')
+                self.get_logger().info(f'Markers detected: {marker_data}')
             
         except Exception as e:
             self.get_logger().error(f'Error processing frame: {str(e)}')
