@@ -1,0 +1,14 @@
+services:
+  zed_camera:
+    image: zed2i_camera-zed2i_camera
+    container_name: zed2i_camera_ros_container
+    runtime: nvidia               # Enable NVIDIA runtime
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,video,utility
+    devices:
+      - /dev/video0:/dev/video0  # ZED camera video device
+      - /dev/bus/usb:/dev/bus/usb
+    network_mode: host            # ROS2 requires host networking
+    stdin_open: true
+    tty: true
