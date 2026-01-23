@@ -1,19 +1,25 @@
 # ------------------------------------------------------------
-# Base image: Stereolabs ZED SDK with CUDA
+# Base image: ZED SDK 5.1 for Jetson L4T R36.4 (JetPack 6.1)
 # ------------------------------------------------------------
-FROM stereolabs/zed:4.2-devel-cuda12.1-ubuntu22.04
+FROM stereolabs/zed:5.1-devel-l4t-r36.4
 
 # ------------------------------------------------------------
 # Environment variables for ROS2 and ZED
 # ------------------------------------------------------------
 ENV ROS_DISTRO=humble
 ENV ZED_SDK_ROOT=/usr/local/zed
+# ------------------------------------------------------------
+# Environment variables for ROS2 and ZED
+# ------------------------------------------------------------
+ENV ROS_DISTRO=humble
+ENV ZED_SDK_ROOT=/usr/local/zed
 ENV CMAKE_PREFIX_PATH=/usr/local/zed:/opt/ros/humble:$CMAKE_PREFIX_PATH
-ENV ZED_DIR=/usr/local/zed/lib/cmake/ZED
+ENV ZED_DIR=/usr/local/zed
 ENV LD_LIBRARY_PATH=/usr/local/zed/lib:/usr/local/zed/lib64:$LD_LIBRARY_PATH
 ENV PATH=/usr/local/zed/bin:$PATH
 ENV PYTHONPATH=/usr/local/zed/lib/python3.10/site-packages:$PYTHONPATH
 
+# ... rest of your Dockerfile stays the same
 # ------------------------------------------------------------
 # Install ROS2 Humble desktop essentials
 # ------------------------------------------------------------
@@ -43,14 +49,18 @@ RUN rosdep init || true
 RUN rosdep update
 RUN /bin/bash -c "cd /ros2_ws && rosdep install --from-paths src --ignore-src -r -y"
 
+# Fix ZED library path for Jetson
+#RUN mkdir -p /usr/local/zed/lib/cmake/ZED/lib && \
+#    ln -s /usr/local/zed/lib/libsl_zed.so /usr/local/zed/lib/cmake/ZED/lib/libsl_zed.so
 
 # ------------------------------------------------------------
 # Build workspace
 # ------------------------------------------------------------
-RUN /bin/bash -c "source /opt/ros/humble/setup.bash && colcon build --symlink-install"
+RUN /bin/bash -c "source /opt/ros/humble/setup.bash && \
+                  colcon build --symlink-install --cmake-args -DZED_DIR=/usr/local/zed"
 
 # ------------------------------------------------------------
 # Set entrypoint
 # ------------------------------------------------------------
 WORKDIR /ros2_ws
-ENTRYPOINT ["/bin/bash", "-c", "source /opt/ros/humble/setup.bash && source install/setup.bash && exec bash"]
+#ENTRYPOINT ["/bin/bash", "-c", "source /opt/ros/humble/setup.bash && source install/setup.bash && exec bash"]
