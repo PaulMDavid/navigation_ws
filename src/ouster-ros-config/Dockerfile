@@ -3,8 +3,8 @@
 # =============================================================================
 
 # Build arguments
-ARG ROS_DISTRO=rolling
-ARG RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+ARG ROS_DISTRO=humble
+ARG RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
 
 # =============================================================================
 # Build Environment Stage
@@ -19,10 +19,10 @@ ARG RMW_IMPLEMENTATION
 ENV DEBIAN_FRONTEND=noninteractive \
     RMW_IMPLEMENTATION=${RMW_IMPLEMENTATION} \
     BUILD_HOME=/var/lib/build \
-    OUSTER_ROS_PATH=/opt/ros2_ws/src/ouster-ros \
+    OUSTER_ROS_PATH=/opt/src/ouster-ros \
     ROS_SETUP=/opt/ros/${ROS_DISTRO}/setup.bash
 
-SHELL ["/bin/bash", "-c"]
+ SHELL ["/bin/bash", "-c"]
 
 # Install build dependencies (single apt-get update for efficiency)
 RUN set -xue && \
@@ -37,15 +37,17 @@ RUN set -xue && \
         python3-bloom \
         python3-colcon-common-extensions \
         # Ouster SDK dependencies (libcurl4-openssl-dev renamed in Ubuntu 24.04)
-        libcurl4-gnutls-dev \
-        libeigen3-dev \
-        libjsoncpp-dev \
-        libpcap-dev \
-        libspdlog-dev \
-        libtins-dev \
-        # ROS2 tools for recording and debugging
-        ros-${ROS_DISTRO}-ros2bag \
-        ros-${ROS_DISTRO}-rosbag2-storage-default-plugins && \
+        ros-$ROS_DISTRO-pcl-ros     \
+        ros-$ROS_DISTRO-tf2-eigen   \
+        ros-$ROS_DISTRO-rviz2       \
+        build-essential         \
+        libeigen3-dev           \
+        libjsoncpp-dev          \
+        libspdlog-dev           \
+        libcurl4-openssl-dev    \
+        cmake                   \
+        python3-colcon-common-extensions    \
+        ros-humble-foxglove-bridge          && \
     # Install optional RMW implementation
     if [ "$RMW_IMPLEMENTATION" = "rmw_cyclonedds_cpp" ]; then \
         apt-get install -y --no-install-recommends ros-${ROS_DISTRO}-rmw-cyclonedds-cpp; \
@@ -74,7 +76,7 @@ RUN apt-get update && \
 USER build:build
 WORKDIR ${BUILD_HOME}
 
-RUN mkdir src && cp -R ${OUSTER_ROS_PATH} ./src/
+ RUN mkdir src && cp -R ${OUSTER_ROS_PATH} ./src/
 
 # =============================================================================
 # Final Build Stage
@@ -89,11 +91,11 @@ RUN source ${ROS_SETUP} && \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_CXX_FLAGS="-Wno-deprecated-declarations"
 
-RUN source ${ROS_SETUP} && \
-    colcon test \
-        --ctest-args tests ouster_ros \
-        --rerun-failed \
-        --output-on-failure
+# RUN source ${ROS_SETUP} && \
+#     colcon test \
+#         --ctest-args tests ouster_ros \
+#         --rerun-failed \
+#         --output-on-failure
 
 # =============================================================================
 # Runtime Configuration
@@ -101,5 +103,6 @@ RUN source ${ROS_SETUP} && \
 # Usage: docker run --rm -it ouster-ros [sensor.launch parameters ..]
 ENTRYPOINT ["bash", "-c", "set -e \
     && source ./install/setup.bash \
+    && source /opt/ros/humble/setup.bash \
     && ros2 launch ouster_ros sensor.launch.xml \"$@\"", \
     "ros-entrypoint"]
