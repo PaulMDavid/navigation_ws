@@ -2,7 +2,7 @@
 # BASE IMAGE — choose desired ROS 2 distribution (humble, iron, jazzy…)
 # =====================================================================
 ARG ROS_DISTRO=humble
-FROM ros:${ROS_DISTRO}-desktop
+FROM ros:${ROS_DISTRO}-ros-base
 
 ARG ROS_DISTRO
 
