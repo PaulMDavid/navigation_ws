@@ -18,6 +18,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libspdlog-dev \
     libcurl4-openssl-dev \
     libpcap-dev \
+    libopencv-dev \
     python3-colcon-common-extensions \
     ros-${ROS_DISTRO}-pcl-ros \
     ros-${ROS_DISTRO}-tf2-eigen \
@@ -52,4 +53,3 @@ ENV ROS_DISTRO=${ROS_DISTRO}
 
 # Useful default entry point
 ENTRYPOINT ["/bin/bash", "-c", "source /opt/ros/${ROS_DISTRO}/setup.bash && source /ros2_ws/install/setup.bash && exec bash"]
-
