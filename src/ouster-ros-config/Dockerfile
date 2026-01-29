@@ -23,6 +23,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ros-${ROS_DISTRO}-pcl-ros \
     ros-${ROS_DISTRO}-tf2-eigen \
     ros-${ROS_DISTRO}-rviz2 \
+    ros-${ROS_DISTRO}-foxglove-bridge \
     && rm -rf /var/lib/apt/lists/*
 
 # =====================================================================
