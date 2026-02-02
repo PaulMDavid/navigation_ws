@@ -13,3 +13,5 @@ services:
     network_mode: host            # ROS2 requires host networking
     stdin_open: true
     tty: true
+    volumes:
+      - ../rosbags:/ros2_ws/rosbags
