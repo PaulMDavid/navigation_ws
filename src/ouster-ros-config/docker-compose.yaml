@@ -19,14 +19,14 @@ services:
     
     # Mount the entire project folder
     volumes:
-      - .:/opt/ouster-ros:rw
+      - .:/src/ouster-ros:rw
     
     environment:
       - ROS_DOMAIN_ID=0
       - RMW_IMPLEMENTATION=rmw_fastrtps_cpp
       - ROS_LOG_DIR=/tmp/ros_logs
       # Ouster sensor configuration
-      - OUSTER_SENSOR_HOSTNAME=192.168.1.220
+      - OUSTER_SENSOR_HOSTNAME=169.254.61.114
       - OUSTER_LIDAR_MODE=1024x10
     
     # Interactive terminal
@@ -38,4 +38,4 @@ services:
     # entrypoint: ["/bin/bash"]
     
     # Default command launches the sensor node
-    command: ["sensor_hostname:=192.168.1.220", "viz:=false"]
+    command: ["sensor_hostname:=169.254.61.114", "viz:=false"]
