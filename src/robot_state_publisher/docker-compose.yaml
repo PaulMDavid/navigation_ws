@@ -1,0 +1,38 @@
+services:
+  ros:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        ROS_DISTRO: humble
+    container_name: robot_state_publisher_container
+    tty: true
+    stdin_open: true
+
+    # Mount your project directories
+    #NOTE: remove  or add volumes as needed, and adjust paths if necessary
+    volumes:
+      - .:/workspace/src/robot_state_publisher
+      - ./data:/workspace/data
+      - ./config:/workspace/config
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+
+    environment:
+      - ROS_DISTRO=humble
+      - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+      - DEBIAN_FRONTEND=noninteractive
+      - DISPLAY=${DISPLAY}
+      - QT_X11_NO_MITSHM=1
+      - XDG_RUNTIME_DIR=/tmp/runtime-root
+      - ROS_DOMAIN_ID=2
+
+    # Allows GUI tools (rviz, rqt, etc.)
+    network_mode: host
+    privileged: true
+
+  
+    working_dir: /workspace
+
+    command: ros2 run robot_state_publisher robot_state_publisher config/URDF/robot.urdf
+    # add tdev null to avoid error when no command is provided, and to keep the container running
+    #command: tail -f /dev/null

@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>app_robot_state_publisher</name>
+  <version>0.0.1</version>
+  <description>Robot state publisher package</description>
+  <maintainer email="p.david@campus.tu-berlin.de">Paul Mangalam</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>ament_python</buildtool_depend>
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>
