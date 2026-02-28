@@ -1,0 +1,43 @@
+services:
+  rtab_map_container:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        ROS_DISTRO: humble
+
+    container_name: rtab_map_container
+
+    volumes:
+      - .:/workspace
+      - ./data:/workspace/data
+      - ./config:/workspace/config
+      - ./rtabmap-databases:/root/Documents/RTAB-Map
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+
+    environment:
+      ROS_DISTRO: humble
+      RMW_IMPLEMENTATION: rmw_cyclonedds_cpp
+      DEBIAN_FRONTEND: noninteractive
+      DISPLAY: ${DISPLAY}
+      QT_X11_NO_MITSHM: "1"
+      XDG_RUNTIME_DIR: /tmp/runtime-root
+
+    network_mode: host
+    privileged: true
+    working_dir: /workspace
+
+    command: >
+      ros2 launch rtabmap_launch rtabmap.launch.py
+      rgb_topic:=/your_camera/rgb/image_raw
+      depth_topic:=/your_camera/depth/image_raw
+      camera_info_topic:=/your_camera/camera_info
+      subscribe_scan:=true
+      scan_topic:=/your_scan_topic
+      imu_topic:=/your_imu_topic
+      wait_imu_to_init:=true
+      visual_odometry:=true
+      frame_id:=base_link
+      approx_sync:=true
+      rtabmap_viz:=true
+      args:="--delete_db_on_start"
