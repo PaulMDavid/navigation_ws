@@ -19,11 +19,11 @@ RUN mkdir -p /workspace/src
 
 RUN rosdep update
 
-RUN echo "source /opt/ros/${ROS_DISTRO}/setup.bash" >> ~/.bashrc && \
-    echo "if [ -f /workspace/install/setup.bash ]; then source /workspace/install/setup.bash; fi" >> ~/.bashrc
+COPY postcreatecommand.sh /postcreatecommand.sh
+RUN chmod +x /postcreatecommand.sh
 
-# Also set environment variables for non-interactive shells
-ENV BASH_ENV ~/.bashrc
-RUN echo "source /opt/ros/${ROS_DISTRO}/setup.bash" >> /etc/bash.bashrc && \
-    echo "if [ -f /workspace/install/setup.bash ]; then source /workspace/install/setup.bash; fi" >> /etc/bash.bashrc
+# Set as entrypoint
+ENTRYPOINT ["/postcreatecommand.sh"]
+
+
 

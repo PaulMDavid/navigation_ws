@@ -1,5 +1,11 @@
 aruco_detector:
   ros__parameters:
-    aruco_dict: 'DICT_6X6_250'
+    aruco_dict: 'DICT_6X6_150'
     camera_id: 0
     use_webcam: true
+
+    marker_size: 0.15  # Size of the ArUco marker in meters
+    fx: 600.0
+    fy: 600.0
+    cx: 320.0
+    cy: 240.0

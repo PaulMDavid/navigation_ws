@@ -14,10 +14,22 @@ class ArucoDetectorNode(Node):
         self.declare_parameter('aruco_dict', 'DICT_6X6_250')
         self.declare_parameter('camera_id', 0)
         self.declare_parameter('use_webcam', True)
-        
+        self.declare_parameter('marker_size', rclpy.Parameter.Type.DOUBLE)
+        self.declare_parameter('fx', rclpy.Parameter.Type.DOUBLE)
+        self.declare_parameter('fy', rclpy.Parameter.Type.DOUBLE)
+        self.declare_parameter('cx', rclpy.Parameter.Type.DOUBLE)
+        self.declare_parameter('cy', rclpy.Parameter.Type.DOUBLE)
+
+        self.marker_size = self.get_parameter('marker_size').value
+        self.fx = self.get_parameter('fx').value
+        self.fy = self.get_parameter('fy').value
+        self.cx = self.get_parameter('cx').value
+        self.cy = self.get_parameter('cy').value
+                
         aruco_dict_name = self.get_parameter('aruco_dict').get_parameter_value().string_value
         camera_id = self.get_parameter('camera_id').get_parameter_value().integer_value
         use_webcam = self.get_parameter('use_webcam').get_parameter_value().bool_value
+
         
         self.get_logger().info(f'Using ArUco dictionary: {aruco_dict_name}')
         
@@ -56,30 +68,42 @@ class ArucoDetectorNode(Node):
         if not ret:
             self.get_logger().error('Failed to read frame from webcam')
             return
-        
+
         try:
-            # Detect markers using the old API
             corners, ids, rejected = cv2.aruco.detectMarkers(frame, self.aruco_dict)
-            
+
             if ids is not None:
-                # Marker detected
                 marker_data = []
+                half = self.marker_size / 2.0
+                obj_points = np.array([[-half,  half, 0],
+                                        [ half,  half, 0],
+                                        [ half, -half, 0],
+                                        [-half, -half, 0]], dtype=np.float32)
+                camera_matrix = np.array([[self.fx,       0, self.cx],
+                                        [      0, self.fy, self.cy],
+                                        [      0,       0,       1]], dtype=np.float32)
+
                 for i, marker_id in enumerate(ids.flatten()):
-                    # Calculate center (u, v) of the marker
                     corner_points = corners[i][0]
-                    center_u = np.mean(corner_points[:, 0])
-                    center_v = np.mean(corner_points[:, 1])
+                    center_u = float(np.mean(corner_points[:, 0]))
+                    center_v = float(np.mean(corner_points[:, 1]))
+
+                    ret, rvec, tvec = cv2.solvePnP(obj_points, corner_points,
+                                                camera_matrix, None)
+                    distance = float(np.linalg.norm(tvec))
+
                     marker_data.append({
                         'id': int(marker_id),
-                        'center_u': float(center_u),
-                        'center_v': float(center_v)
+                        'center_u': center_u,
+                        'center_v': center_v,
+                        'distance': distance
                     })
-                
+
                 marker_msg = String()
                 marker_msg.data = str(marker_data)
                 self.marker_publisher.publish(marker_msg)
                 self.get_logger().info(f'Markers detected: {marker_data}')
-            
+
         except Exception as e:
             self.get_logger().error(f'Error processing frame: {str(e)}')
 
