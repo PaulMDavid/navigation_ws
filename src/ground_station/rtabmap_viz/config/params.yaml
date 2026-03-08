@@ -1,0 +1,43 @@
+/**:
+  ros__parameters:
+    # Frames
+    frame_id: chassis_link
+    odom_frame_id: odom
+    map_frame_id: map
+
+    # Sync
+    approx_sync: true
+    queue_size: 10
+
+    # Subscriptions
+    subscribe_depth: true
+    subscribe_scan_cloud: true
+
+    # IMU
+    imu_topic: /ouster/imu
+    wait_imu_to_init: true
+
+    # Odometry
+    visual_odometry: true
+
+    # Database
+    database_path: /root/Documents/RTAB-Map/rtabmap.db
+    # Loop closure
+    RGBD/ProximityBySpace: "true"
+    RGBD/AngularUpdate: "0.05"
+    RGBD/LinearUpdate: "0.05"
+
+    # LiDAR grid map
+    Grid/Sensor: "1"
+    Grid/RangeMax: "20.0"
+    Grid/RangeMin: "0.5"
+
+    # ICP odometry
+    Icp/PointToPlane: "true"
+    Icp/MaxCorrespondenceDistance: "1.0"
+    Reg/Strategy: "2"        # visual + ICP fused
+    Reg/Force3DoF: "false"   # rover operates on uneven terrain
+
+    # Optimizer
+    Optimizer/Strategy: "1"  # g2o
+    Optimizer/Iterations: "20"
