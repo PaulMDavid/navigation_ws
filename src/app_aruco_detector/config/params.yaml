@@ -1,8 +1,9 @@
 aruco_detector:
   ros__parameters:
-    aruco_dict: 'DICT_6X6_150'
+    aruco_dict: 'DICT_5X5_100'
     camera_id: 0
-    use_webcam: true
+    use_webcam: false
+    image_topic: '/zed/camera/image_rect'
 
     marker_size: 0.15  # Size of the ArUco marker in meters
     fx: 600.0

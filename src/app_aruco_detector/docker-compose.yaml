@@ -30,5 +30,5 @@ services:
 
   
     working_dir: /workspace
-    command: tail -f /dev/null
-    #command: ros2 launch aruco_detector aruco_detector.launch.py
+    #command: tail -f /dev/null
+    command: ros2 launch aruco_detector aruco_detector.launch.py
