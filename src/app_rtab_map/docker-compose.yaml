@@ -29,9 +29,9 @@ services:
 
     command: >
        ros2 launch rtabmap_launch rtabmap.launch.py
-       rgb_topic:=/zed/zed_node/rgb/image_rect_color
-       depth_topic:=/zed/zed_node/depth/depth_registered
-       camera_info_topic:=/zed/zed_node/rgb/camera_info
+       rgb_topic:=/zed/zed_node/rgb/color/rect/image/compressed
+       depth_topic:=/zed/zed_node/depth/depth_registered/compressed
+       camera_info_topic:=/zed/zed_node/depth/camera_info
        scan_cloud_topic:=/ouster/points
        frame_id:=chassis_link
        approx_sync:=true

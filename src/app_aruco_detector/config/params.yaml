@@ -3,7 +3,7 @@ aruco_detector:
     aruco_dict: 'DICT_5X5_100'
     camera_id: 0
     use_webcam: false
-    image_topic: '/zed/camera/image_rect'
+    image_topic: '/zed/zed_node/rgb/color/rect/image/compressed'
 
     marker_size: 0.15  # Size of the ArUco marker in meters
     fx: 600.0
