@@ -1,11 +1,46 @@
 #!/usr/bin/env python3
 import rclpy
 from rclpy.node import Node
-from std_msgs.msg import String
 from sensor_msgs.msg import CompressedImage, CameraInfo
-from cv_bridge import CvBridge
+from geometry_msgs.msg import Pose, Point, Quaternion, Point32
+from aruco_detector_msgs.msg import ArucoDetection, ArucoDetectionArray
 import cv2
 import numpy as np
+
+
+def rvec_to_quaternion(rvec: np.ndarray) -> Quaternion:
+    """Convert an OpenCV rotation vector to a ROS Quaternion via Rodrigues."""
+    rot_matrix, _ = cv2.Rodrigues(rvec)
+    # Extract quaternion (w, x, y, z) from rotation matrix
+    trace = rot_matrix[0, 0] + rot_matrix[1, 1] + rot_matrix[2, 2]
+    if trace > 0:
+        s = 0.5 / np.sqrt(trace + 1.0)
+        w = 0.25 / s
+        x = (rot_matrix[2, 1] - rot_matrix[1, 2]) * s
+        y = (rot_matrix[0, 2] - rot_matrix[2, 0]) * s
+        z = (rot_matrix[1, 0] - rot_matrix[0, 1]) * s
+    elif rot_matrix[0, 0] > rot_matrix[1, 1] and rot_matrix[0, 0] > rot_matrix[2, 2]:
+        s = 2.0 * np.sqrt(1.0 + rot_matrix[0, 0] - rot_matrix[1, 1] - rot_matrix[2, 2])
+        w = (rot_matrix[2, 1] - rot_matrix[1, 2]) / s
+        x = 0.25 * s
+        y = (rot_matrix[0, 1] + rot_matrix[1, 0]) / s
+        z = (rot_matrix[0, 2] + rot_matrix[2, 0]) / s
+    elif rot_matrix[1, 1] > rot_matrix[2, 2]:
+        s = 2.0 * np.sqrt(1.0 + rot_matrix[1, 1] - rot_matrix[0, 0] - rot_matrix[2, 2])
+        w = (rot_matrix[0, 2] - rot_matrix[2, 0]) / s
+        x = (rot_matrix[0, 1] + rot_matrix[1, 0]) / s
+        y = 0.25 * s
+        z = (rot_matrix[1, 2] + rot_matrix[2, 1]) / s
+    else:
+        s = 2.0 * np.sqrt(1.0 + rot_matrix[2, 2] - rot_matrix[0, 0] - rot_matrix[1, 1])
+        w = (rot_matrix[1, 0] - rot_matrix[0, 1]) / s
+        x = (rot_matrix[0, 2] + rot_matrix[2, 0]) / s
+        y = (rot_matrix[1, 2] + rot_matrix[2, 1]) / s
+        z = 0.25 * s
+    q = Quaternion()
+    q.x, q.y, q.z, q.w = float(x), float(y), float(z), float(w)
+    return q
+
 
 class ArucoDetectorNode(Node):
     def __init__(self):
@@ -14,137 +49,137 @@ class ArucoDetectorNode(Node):
 
         # Declare parameters
         self.declare_parameter('aruco_dict', 'DICT_6X6_250')
-        self.declare_parameter('camera_id', 0)
-        self.declare_parameter('use_webcam', True)
-        self.declare_parameter('image_topic', '/zed/zed_node/rgb/color/rect/image/compressed')
-        self.declare_parameter('camera_info_topic', '/zed/zed_node/rgb/color/rect/camera_info')
-        self.declare_parameter('marker_size', rclpy.Parameter.Type.DOUBLE)
+        self.declare_parameter('image_topic', '/zed2i/zed_node/rgb/color/rect/image/compressed')
+        self.declare_parameter('camera_info_topic', '/zed2i/zed_node/rgb/color/rect/camera_info')
+        self.declare_parameter('camera_frame', 'zed2i_left_camera_optical_frame')
+        self.declare_parameter('marker_size', 0.05)  # metres; override via params file
 
-        self.marker_size = self.get_parameter('marker_size').value
+        self.camera_frame = self.get_parameter('camera_frame').get_parameter_value().string_value
 
-        # Intrinsics will be populated from camera_info
-        self.fx = None
-        self.fy = None
-        self.cx = None
-        self.cy = None
-        self.camera_info_received = False
+        # Camera intrinsics — populated on first camera_info message
+        self.camera_matrix: np.ndarray | None = None
+        self.dist_coeffs: np.ndarray | None = None
 
         aruco_dict_name = self.get_parameter('aruco_dict').get_parameter_value().string_value
-        camera_id = self.get_parameter('camera_id').get_parameter_value().integer_value
-        use_webcam = self.get_parameter('use_webcam').get_parameter_value().bool_value
+        self.get_logger().info(f'ArUco dictionary: {aruco_dict_name}')
 
-        self.get_logger().info(f'Using ArUco dictionary: {aruco_dict_name}')
+        aruco_dict_id = getattr(cv2.aruco, aruco_dict_name, None)
+        if aruco_dict_id is None:
+            raise ValueError(f'Unknown ArUco dictionary: {aruco_dict_name}')
+        self.aruco_dict = cv2.aruco.getPredefinedDictionary(aruco_dict_id)
+        self.aruco_params = cv2.aruco.DetectorParameters_create()
 
-        # Get the ArUco dictionary
-        try:
-            self.aruco_dict = cv2.aruco.getPredefinedDictionary(
-                getattr(cv2.aruco, aruco_dict_name)
-            )
-        except:
-            self.aruco_dict = getattr(cv2.aruco, aruco_dict_name)
+        # Publisher
+        self.detections_pub = self.create_publisher(
+            ArucoDetectionArray, 'aruco_detections', 10)
 
-        self.marker_publisher = self.create_publisher(String, 'marker_detected', 10)
-        self.bridge = CvBridge()
-        self.camera_id = camera_id
-
-        # Subscribe to camera_info to get intrinsics automatically
+        # Subscribers
         camera_info_topic = self.get_parameter('camera_info_topic').get_parameter_value().string_value
         self.camera_info_sub = self.create_subscription(
-            CameraInfo,
-            camera_info_topic,
-            self.camera_info_callback,
-            10
-        )
+            CameraInfo, camera_info_topic, self._camera_info_callback, 10)
         self.get_logger().info(f'Subscribing to camera_info: {camera_info_topic}')
 
         image_topic = self.get_parameter('image_topic').get_parameter_value().string_value
-        self.get_logger().info(f'Subscribing to image topic: {image_topic}')
         self.image_sub = self.create_subscription(
-            CompressedImage,
-            image_topic,
-            self.image_callback,
-            10
+            CompressedImage, image_topic, self._image_callback, 10)
+        self.get_logger().info(f'Subscribing to image: {image_topic}')
+
+    # ------------------------------------------------------------------ #
+
+    def _camera_info_callback(self, msg: CameraInfo) -> None:
+        if self.camera_matrix is not None:
+            return  # already received
+        self.camera_matrix = np.array(msg.k, dtype=np.float64).reshape(3, 3)
+        self.dist_coeffs = np.array(msg.d, dtype=np.float64)
+        self.get_logger().info(
+            f'Camera intrinsics received — fx={self.camera_matrix[0,0]:.2f}, '
+            f'fy={self.camera_matrix[1,1]:.2f}, '
+            f'cx={self.camera_matrix[0,2]:.2f}, cy={self.camera_matrix[1,2]:.2f}'
         )
 
-    def camera_info_callback(self, msg):
-        """Get camera intrinsics from camera_info topic"""
-        if not self.camera_info_received:
-            self.fx = msg.k[0]
-            self.fy = msg.k[4]
-            self.cx = msg.k[2]
-            self.cy = msg.k[5]
-            self.camera_info_received = True
-            self.get_logger().info(
-                f'Camera intrinsics received: fx={self.fx:.2f}, fy={self.fy:.2f}, '
-                f'cx={self.cx:.2f}, cy={self.cy:.2f}'
-            )
-
-    def image_callback(self, msg):
-        """Process frames from ROS compressed image topic"""
-        if not self.camera_info_received:
-            self.get_logger().warn('Waiting for camera_info...', throttle_duration_sec=5.0)
+    def _image_callback(self, msg: CompressedImage) -> None:
+        if self.camera_matrix is None:
+            self.get_logger().warning(
+                'Waiting for camera_info…', throttle_duration_sec=5.0)
             return
         try:
             np_arr = np.frombuffer(msg.data, np.uint8)
             frame = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
-            if frame is None:
-                self.get_logger().error('Failed to decode compressed image')
-                return
-        except Exception as e:
-            self.get_logger().error(f'Image decode error: {str(e)}')
+        except Exception as exc:
+            self.get_logger().error(f'Image decode error: {exc}')
             return
-        self.detect_markers(frame)
-
-    def process_frame(self):
-        """Process frames from webcam"""
-        ret, frame = self.cap.read()
-        if not ret:
-            self.get_logger().error('Failed to read frame from webcam')
+        if frame is None:
+            self.get_logger().error('cv2.imdecode returned None')
             return
-        self.detect_markers(frame)
+        self._detect_and_publish(frame, msg.header)
 
-    def detect_markers(self, frame):
-        try:
-            corners, ids, rejected = cv2.aruco.detectMarkers(frame, self.aruco_dict)
+    def _detect_and_publish(self, frame: np.ndarray, image_header) -> None:
+        corners, ids, _ = cv2.aruco.detectMarkers(frame, self.aruco_dict, parameters=self.aruco_params)
 
-            if ids is not None:
-                marker_data = []
-                half = self.marker_size / 2.0
-                obj_points = np.array([[-half,  half, 0],
-                                        [ half,  half, 0],
-                                        [ half, -half, 0],
-                                        [-half, -half, 0]], dtype=np.float32)
-                camera_matrix = np.array([[self.fx,       0, self.cx],
-                                        [      0, self.fy, self.cy],
-                                        [      0,       0,       1]], dtype=np.float32)
+        array_msg = ArucoDetectionArray()
+        array_msg.header.stamp = image_header.stamp
+        array_msg.header.frame_id = self.camera_frame
 
-                for i, marker_id in enumerate(ids.flatten()):
-                    corner_points = corners[i][0]
-                    center_u = float(np.mean(corner_points[:, 0]))
-                    center_v = float(np.mean(corner_points[:, 1]))
+        if ids is None:
+            self.detections_pub.publish(array_msg)
+            return
 
-                    ret, rvec, tvec = cv2.solvePnP(obj_points, corner_points,
-                                                camera_matrix, None)
-                    distance = float(np.linalg.norm(tvec))
-                    marker_data.append({
-                        'id': int(marker_id),
-                        'center_u': center_u,
-                        'center_v': center_v,
-                        'distance': distance
-                    })
-                marker_msg = String()
-                marker_msg.data = str(marker_data)
-                self.marker_publisher.publish(marker_msg)
-                self.get_logger().info(f'Markers detected: {marker_data}')
-        except Exception as e:
-            self.get_logger().error(f'Error processing frame: {str(e)}')
+        # Recompute every frame so runtime parameter changes take effect
+        half = self.get_parameter('marker_size').get_parameter_value().double_value / 2.0
+        obj_points = np.array([
+            [-half,  half, 0.0],
+            [ half,  half, 0.0],
+            [ half, -half, 0.0],
+            [-half, -half, 0.0],
+        ], dtype=np.float32)
+
+        for i, marker_id in enumerate(ids.flatten()):
+            corner_pts = corners[i][0]  # shape (4, 2)
+
+            ok, rvec, tvec = cv2.solvePnP(
+                obj_points, corner_pts,
+                self.camera_matrix, self.dist_coeffs,
+                flags=cv2.SOLVEPNP_IPPE_SQUARE,
+            )
+            if not ok:
+                self.get_logger().warning(f'solvePnP failed for marker id={marker_id}')
+                continue
+
+            tvec = tvec.flatten()
+            detection = ArucoDetection()
+            detection.header.stamp = image_header.stamp
+            detection.header.frame_id = self.camera_frame
+            detection.id = int(marker_id)
+
+            detection.pose = Pose(
+                position=Point(x=float(tvec[0]), y=float(tvec[1]), z=float(tvec[2])),
+                orientation=rvec_to_quaternion(rvec),
+            )
+            detection.distance = float(np.linalg.norm(tvec))
+
+            # Pixel corners: top-left, top-right, bottom-right, bottom-left
+            # Fixed-size array field — must assign all 4 at once, not append
+            detection.corners_px = [
+                Point32(x=float(pt[0]), y=float(pt[1]), z=0.0)
+                for pt in corner_pts
+            ]
+
+            array_msg.detections.append(detection)
+
+        self.detections_pub.publish(array_msg)
+        if array_msg.detections:
+            ids_seen = [d.id for d in array_msg.detections]
+            self.get_logger().info(f'Detected markers: {ids_seen}')
 
 
 def main(args=None):
     rclpy.init(args=args)
     node = ArucoDetectorNode()
     rclpy.spin(node)
+    node.destroy_node()
     rclpy.shutdown()
+
 
 if __name__ == '__main__':
     main()
+
