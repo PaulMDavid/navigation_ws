@@ -28,7 +28,8 @@ services:
     working_dir: /workspace
 
     command: >
-      ros2 launch rtabmap_launch rtabmap.launch.py
-      rtabmap_viz:=true
-      localization:=true
-      params_file:=/workspace/config/params.yaml
+              ros2 run rtabmap_ros rtabmap
+              --ros-args
+              -p database_path:=/root/Documents/RTAB-Map/rtabmap.db
+              -p Mem/IncrementalMemory:=false
+              -p Mem/InitWMWithAllNodes:=true
