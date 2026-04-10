@@ -1,0 +1,27 @@
+services:
+  app_nav2:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        ROS_DISTRO: humble
+    container_name: app_nav2_container
+    tty: true
+    stdin_open: true
+    volumes:
+      - .:/workspace/src/app_nav2
+      - ./data:/workspace/data
+      - ./config:/workspace/config
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+    environment:
+      - ROS_DISTRO=humble
+      - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+      - DEBIAN_FRONTEND=noninteractive
+      - DISPLAY=${DISPLAY}
+      - QT_X11_NO_MITSHM=1
+      - XDG_RUNTIME_DIR=/tmp/runtime-root
+      - ROS_DOMAIN_ID=0
+    network_mode: host
+    privileged: true
+    working_dir: /workspace
+    command: ros2 launch app_nav2 nav2.launch.py
