@@ -988,7 +988,7 @@
 
   <joint name="zed_camera_bridge_joint" type="fixed">
     <parent link="zed_2i_link"/>
-    <child link="zed_camera_link"/>
+    <child link="zed2i_camera_link"/>
   </joint>
-  <link name="zed_camera_link"/>
+  <link name="zed2i_camera_link"/>
 </robot>
