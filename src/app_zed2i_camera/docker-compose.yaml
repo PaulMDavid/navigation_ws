@@ -1,7 +1,7 @@
 services:
   zed_camera:
     build: .
-    container_name: zed2i_camera_ros_container
+    container_name: app_zed2i_camera
     runtime: nvidia               # Enable NVIDIA runtime
     privileged: true
     environment:
@@ -14,4 +14,5 @@ services:
     stdin_open: true
     tty: true
     volumes:
-      - ../rosbags:/ros2_ws/rosbags
+      - ../rosbags:/workspace/rosbags
+    command: ros2 launch zed_wrapper zed_camera.launch.py camera_model:=zed2i camera_name:=zed2i

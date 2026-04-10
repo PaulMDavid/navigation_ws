@@ -30,5 +30,8 @@ RUN apt-get update \
     && rosdep init \
     && rosdep update \
     && rm -rf /var/lib/apt/lists/*
+    
+COPY postcreatecommand.sh /postcreatecommand.sh
+RUN chmod +x /postcreatecommand.sh
 
 WORKDIR /workspace
