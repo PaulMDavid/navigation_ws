@@ -20,6 +20,7 @@ services:
       - DISPLAY=${DISPLAY}
       - QT_X11_NO_MITSHM=1
       - XDG_RUNTIME_DIR=/tmp/runtime-root
+      - ROS_DOMAIN_ID=0
     network_mode: host
     privileged: true
     working_dir: /workspace
@@ -78,7 +79,7 @@ services:
       - DISPLAY=${DISPLAY}
       - QT_X11_NO_MITSHM=1
       - XDG_RUNTIME_DIR=/tmp/runtime-root
-      - ROS_DOMAIN_ID=2
+      - ROS_DOMAIN_ID=0
     network_mode: host
     privileged: true
     working_dir: /workspace
@@ -91,43 +92,49 @@ services:
       args:
         ROS_DISTRO: humble
     container_name: rtab_map_container
+    tty: true
+    stdin_open: true
     volumes:
       - ./app_rtab_map:/workspace
       - ./app_rtab_map/data:/workspace/data
       - ./app_rtab_map/config:/workspace/config
-      - ./app_rtab_map/rtabmap-databases:/root/Documents/RTAB-Map
+      - /mnt/check/rtabmap_database:/root/Documents/RTAB-Map
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
     environment:
-      ROS_DISTRO: humble
-      RMW_IMPLEMENTATION: rmw_cyclonedds_cpp
-      DEBIAN_FRONTEND: noninteractive
-      DISPLAY: ${DISPLAY}
-      QT_X11_NO_MITSHM: "1"
-      XDG_RUNTIME_DIR: /tmp/runtime-root
+      - ROS_DISTRO=humble
+      - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+      - DEBIAN_FRONTEND=noninteractive
+      - DISPLAY=${DISPLAY}
+      - QT_X11_NO_MITSHM=1
+      - XDG_RUNTIME_DIR=/tmp/runtime-root
+      - ROS_DOMAIN_ID=0
     network_mode: host
     privileged: true
     working_dir: /workspace
     command: >
       ros2 launch rtabmap_launch rtabmap.launch.py
-      rgb_topic:=/zed/zed_node/rgb/color/rect/image/compressed
-      depth_topic:=/zed/zed_node/depth/depth_registered/compressed
-      camera_info_topic:=/zed/zed_node/depth/camera_info
+      rgb_topic:=/zed2i/zed_node/rgb/color/rect/image
+      depth_topic:=/zed2i/zed_node/depth/depth_registered
+      camera_info_topic:=/zed2i/zed_node/rgb/color/rect/camera_info
       scan_cloud_topic:=/ouster/points
       frame_id:=chassis_link
       approx_sync:=true
-      rtabmap_viz:=true
+      rtabmap_viz:=false
+      database_path:=/root/Documents/RTAB-Map/rtabmap.db
       args:="--delete_db_on_start"
       params_file:=/workspace/config/params.yaml
 
   app_zed2i_camera:
-    image: app_zed2i_camera-zed_camera:latest
-    pull_policy: never
-    container_name: zed2i_camera_ros_container
+    build:
+      context: ./app_zed2i_camera
+      dockerfile: Dockerfile
+    container_name: app_zed2i_camera
     runtime: nvidia
     privileged: true
     environment:
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=compute,video,utility
+      - ROS_DOMAIN_ID=0
     devices:
       - /dev/video0:/dev/video0
       - /dev/bus/usb:/dev/bus/usb
@@ -135,4 +142,5 @@ services:
     stdin_open: true
     tty: true
     volumes:
-      - ../rosbags:/ros2_ws/rosbags
+      - ./rosbags:/workspace/rosbags
+    command: ros2 launch zed_wrapper zed_camera.launch.py camera_model:=zed2i camera_name:=zed2i

@@ -7,6 +7,7 @@ services:
     environment:
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=compute,video,utility
+      - ROS_DOMAIN_ID=0
     devices:
       - /dev/video0:/dev/video0  # ZED camera video device
       - /dev/bus/usb:/dev/bus/usb

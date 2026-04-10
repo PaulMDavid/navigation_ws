@@ -36,7 +36,7 @@ services:
        frame_id:=chassis_link
        approx_sync:=true
        rtabmap_viz:=false
-       database_path:=/workspace/rtabmap-databases/rtabmap.db
+       database_path:=/root/Documents/RTAB-Map/rtabmap.db
        args:="--delete_db_on_start"
        params_file:=/workspace/config/params.yaml
    # command: tail -f /dev/null
