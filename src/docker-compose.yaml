@@ -126,7 +126,6 @@ services:
     command: >
       ros2 launch rtabmap_launch rtabmap.launch.py
       rgb_topic:=/zed2i/zed_node/rgb/color/rect/image
-      depth_topic:=/zed2i/zed_node/depth/depth_registered
       camera_info_topic:=/zed2i/zed_node/rgb/color/rect/camera_info
       scan_cloud_topic:=/ouster/points
       frame_id:=chassis_link
