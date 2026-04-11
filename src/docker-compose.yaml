@@ -143,6 +143,8 @@ services:
     tty: true
     volumes:
       - ./rosbags:/workspace/rosbags
+      - ./zed-ros2-wrapper:/workspace/src/zed-ros2-wrapper
+      - .:/workspace/src/zed2i_camera
     #command: ros2 launch zed_wrapper zed_camera.launch.py camera_model:=zed2i camera_name:=zed2i
     command: tail -f /dev/null
 #  app_nav2:
