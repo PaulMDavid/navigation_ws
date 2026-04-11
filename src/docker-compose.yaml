@@ -32,7 +32,7 @@ services:
       dockerfile: Dockerfile
       args:
         ROS_DISTRO: humble
-    container_name: app_ouster_lidar_container
+    container_name: app_lidar_ouster_ros_container
     tty: true
     stdin_open: true
     volumes:
@@ -71,7 +71,7 @@ services:
       dockerfile: Dockerfile
       args:
         ROS_DISTRO: humble
-    container_name: robot_state_publisher_container
+    container_name: app_robot_state_publisher_container
     tty: true
     stdin_open: true
     volumes:
@@ -98,7 +98,7 @@ services:
       dockerfile: Dockerfile
       args:
         ROS_DISTRO: humble
-    container_name: rtab_map_container
+    container_name: app_rtab_map_container
     tty: true
     stdin_open: true
     depends_on:
