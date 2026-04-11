@@ -35,3 +35,5 @@ COPY postcreatecommand.sh /postcreatecommand.sh
 RUN chmod +x /postcreatecommand.sh
 
 WORKDIR /workspace
+
+ENTRYPOINT ["/postcreatecommand.sh"]
