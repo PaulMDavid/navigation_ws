@@ -1,42 +1,43 @@
 services:
-  rtab_map_container:
+   app_rtab_map:
     build:
-      context: .
+      context: ./app_rtab_map
       dockerfile: Dockerfile
       args:
         ROS_DISTRO: humble
-
-    container_name: rtab_map_container
-
+    container_name: app_rtab_map_container
+    tty: true
+    stdin_open: true
+    depends_on:
+      app_zed2i_camera:
+        condition: service_healthy
+      app_lidar_ouster_ros:
+        condition: service_healthy
     volumes:
-      - .:/workspace
-      - ./data:/workspace/data
-      - ./config:/workspace/config
+      - ./app_rtab_map:/workspace
+      - ./app_rtab_map/data:/workspace/data
+      - ./app_rtab_map/config:/workspace/config
       - /mnt/check/rtabmap_database:/root/Documents/RTAB-Map
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
-
     environment:
-      ROS_DISTRO: humble
-      RMW_IMPLEMENTATION: rmw_cyclonedds_cpp
-      DEBIAN_FRONTEND: noninteractive
-      DISPLAY: ${DISPLAY}
-      QT_X11_NO_MITSHM: "1"
-      XDG_RUNTIME_DIR: /tmp/runtime-root
-      ROS_DOMAIN_ID: 0
+      - ROS_DISTRO=humble
+      - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+      - DEBIAN_FRONTEND=noninteractive
+      - DISPLAY=${DISPLAY}
+      - QT_X11_NO_MITSHM=1
+      - XDG_RUNTIME_DIR=/tmp/runtime-root
+      - ROS_DOMAIN_ID=0
     network_mode: host
     privileged: true
     working_dir: /workspace
-
     command: >
-       ros2 launch rtabmap_launch rtabmap.launch.py 
-       rgb_topic:=/zed2i/zed_node/rgb/color/rect/image 
-       depth_topic:=/zed2i/zed_node/depth/depth_registered
-       camera_info_topic:=/zed2i/zed_node/rgb/color/rect/camera_info
-       scan_cloud_topic:=/ouster/points
-       frame_id:=chassis_link
-       approx_sync:=true
-       rtabmap_viz:=false
-       database_path:=/root/Documents/RTAB-Map/rtabmap.db
-       args:="--delete_db_on_start"
-       params_file:=/workspace/config/params.yaml
-   # command: tail -f /dev/null
+      ros2 launch rtabmap_launch rtabmap.launch.py
+      rgb_topic:=/zed2i/zed_node/rgb/color/rect/image
+      camera_info_topic:=/zed2i/zed_node/rgb/color/rect/camera_info
+      scan_cloud_topic:=/ouster/points
+      frame_id:=chassis_link
+      approx_sync:=true
+      rtabmap_viz:=false
+      database_path:=/root/Documents/RTAB-Map/rtabmap.db
+      args:="--delete_db_on_start"
+      params_file:=/workspace/config/params.yaml
