@@ -43,6 +43,7 @@ RUN apt-get update \
         ros-humble-shape-msgs \
         ros-humble-robot-localization \
         ros-humble-backward-ros \
+        ros-humble-xacro \
         python3-colcon-common-extensions \
         python3-rosdep \
     && rosdep init \
