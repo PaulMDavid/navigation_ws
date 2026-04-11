@@ -25,6 +25,8 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         ros-humble-ros-base \
         ros-humble-rmw-cyclonedds-cpp \
+        ros-humble-zed-msgs \
+        ros-humble-nmea-msgs \
         python3-colcon-common-extensions \
         python3-rosdep \
     && rosdep init \
