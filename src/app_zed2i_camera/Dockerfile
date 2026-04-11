@@ -27,6 +27,22 @@ RUN apt-get update \
         ros-humble-rmw-cyclonedds-cpp \
         ros-humble-zed-msgs \
         ros-humble-nmea-msgs \
+        ros-humble-geographic-msgs \
+        ros-humble-image-transport \
+        ros-humble-ament-cmake-auto \
+        ros-humble-tf2 \
+        ros-humble-tf2-ros \
+        ros-humble-tf2-geometry-msgs \
+        ros-humble-geometry-msgs \
+        ros-humble-nav-msgs \
+        ros-humble-stereo-msgs \
+        ros-humble-sensor-msgs \
+        ros-humble-std-srvs \
+        ros-humble-diagnostic-msgs \
+        ros-humble-visualization-msgs \
+        ros-humble-shape-msgs \
+        ros-humble-robot-localization \
+        ros-humble-backward-ros \
         python3-colcon-common-extensions \
         python3-rosdep \
     && rosdep init \
