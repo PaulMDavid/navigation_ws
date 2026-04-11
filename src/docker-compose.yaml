@@ -1,3 +1,4 @@
+version: '3.9'
 services:
   app_aruco_detector:
     build:
@@ -56,6 +57,13 @@ services:
     network_mode: host
     privileged: true
     working_dir: /workspace
+    healthcheck:
+      test: ["CMD", "bash", "-lc", "source /opt/ros/humble/setup.bash && source /workspace/install/setup.bash 2>/dev/null || true; ros2 topic list | grep -q '/ouster/points'"
+      ]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 120s
     command: ros2 launch ouster_ros driver.launch.py sensor_hostname:=169.254.61.114 lidar_mode:=1024x10 viz:=false
 
   app_robot_state_publisher:
@@ -94,6 +102,11 @@ services:
     container_name: rtab_map_container
     tty: true
     stdin_open: true
+    depends_on:
+      app_zed2i_camera:
+        condition: service_healthy
+      app_lidar_ouster_ros:
+        condition: service_healthy
     volumes:
       - ./app_rtab_map:/workspace
       - ./app_rtab_map/data:/workspace/data
@@ -145,8 +158,15 @@ services:
       - ./rosbags:/workspace/rosbags
       - ./app_zed2i_camera/zed-ros2-wrapper:/workspace/src/zed-ros2-wrapper
       - ./app_zed2i_camera:/workspace/src/zed2i_camera
-    #command: ros2 launch zed_wrapper zed_camera.launch.py camera_model:=zed2i camera_name:=zed2i
-    command: tail -f /dev/null
+    healthcheck:
+      test: ["CMD", "bash", "-lc", "source /opt/ros/humble/setup.bash && source /workspace/install/setup.bash 2>/dev/null || true; ros2 topic list | grep -q '/zed2i/zed_node/rgb/color/rect/image'"
+      ]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 120s
+    command: ros2 launch zed_wrapper zed_camera.launch.py camera_model:=zed2i camera_name:=zed2i
+    #command: tail -f /dev/null
 #  app_nav2:
 #    build:
 #      context: ./app_nav2
