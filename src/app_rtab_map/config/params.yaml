@@ -10,7 +10,7 @@
     queue_size: 10
 
     # Subscriptions
-    subscribe_depth: true
+    subscribe_depth: false
     subscribe_scan_cloud: true
 
     # IMU
