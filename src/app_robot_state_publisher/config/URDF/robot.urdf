@@ -985,10 +985,48 @@
    <child link="os_sensor"/>
   </joint>
   <link name="os_sensor"/>
-
   <joint name="zed_camera_bridge_joint" type="fixed">
     <parent link="zed_2i_link"/>
     <child link="zed2i_camera_link"/>
   </joint>
+
+  <!-- ZED2i camera base -->
   <link name="zed2i_camera_link"/>
+
+  <link name="zed2i_camera_center"/>
+  <joint name="zed2i_camera_center_joint" type="fixed">
+    <parent link="zed2i_camera_link"/>
+    <child link="zed2i_camera_center"/>
+    <origin xyz="0 0 0.015" rpy="0 0 0"/>
+  </joint>
+
+  <!-- LEFT CAMERA -->
+  <link name="zed2i_left_camera_frame"/>
+  <joint name="zed2i_left_camera_joint" type="fixed">
+    <parent link="zed2i_camera_center"/>
+    <child link="zed2i_left_camera_frame"/>
+    <origin xyz="-0.01 0.06 0" rpy="0 0 0"/>
+  </joint>
+
+  <link name="zed2i_left_camera_frame_optical"/>
+  <joint name="zed2i_left_camera_optical_joint" type="fixed">
+    <parent link="zed2i_left_camera_frame"/>
+    <child link="zed2i_left_camera_frame_optical"/>
+    <origin xyz="0 0 0" rpy="-1.5708 0 -1.5708"/>
+  </joint>
+
+  <!-- RIGHT CAMERA -->
+  <link name="zed2i_right_camera_frame"/>
+  <joint name="zed2i_right_camera_joint" type="fixed">
+    <parent link="zed2i_camera_center"/>
+    <child link="zed2i_right_camera_frame"/>
+    <origin xyz="-0.01 -0.06 0" rpy="0 0 0"/>
+  </joint>
+
+  <link name="zed2i_right_camera_frame_optical"/>
+  <joint name="zed2i_right_camera_optical_joint" type="fixed">
+    <parent link="zed2i_right_camera_frame"/>
+    <child link="zed2i_right_camera_frame_optical"/>
+    <origin xyz="0 0 0" rpy="-1.5708 0 -1.5708"/>
+  </joint>
 </robot>

@@ -22,6 +22,7 @@ services:
       - XDG_RUNTIME_DIR=/tmp/runtime-root
       - ROS_DOMAIN_ID=0
     network_mode: host
+    ipc: host
     privileged: true
     working_dir: /workspace
     command: ros2 launch aruco_detector aruco_detector.launch.py
@@ -54,6 +55,7 @@ services:
       - OUSTER_SENSOR_HOSTNAME=169.254.61.114
       - OUSTER_LIDAR_MODE=1024x10
     network_mode: host
+    ipc: host
     privileged: true
     working_dir: /workspace
     healthcheck:
@@ -88,6 +90,7 @@ services:
       - XDG_RUNTIME_DIR=/tmp/runtime-root
       - ROS_DOMAIN_ID=0
     network_mode: host
+    ipc: host
     privileged: true
     working_dir: /workspace
     command: ros2 run robot_state_publisher robot_state_publisher config/URDF/robot.urdf
@@ -101,11 +104,11 @@ services:
     container_name: app_rtab_map_container
     tty: true
     stdin_open: true
-    depends_on:
-      app_zed2i_camera:
-        condition: service_healthy
-      app_lidar_ouster_ros:
-        condition: service_healthy
+   # depends_on:
+   #   app_zed2i_camera:
+   #     condition: service_healthy
+   #   app_lidar_ouster_ros:
+   #     condition: service_healthy
     volumes:
       - ./app_rtab_map:/workspace
       - ./app_rtab_map/data:/workspace/data
@@ -121,6 +124,7 @@ services:
       - XDG_RUNTIME_DIR=/tmp/runtime-root
       - ROS_DOMAIN_ID=0
     network_mode: host
+    ipc: host
     privileged: true
     working_dir: /workspace
     command: >
@@ -129,13 +133,31 @@ services:
       camera_info_topic:=/zed2i/zed_node/rgb/color/rect/camera_info
       depth_topic:=/zed2i/zed_node/depth/depth_registered
       scan_cloud_topic:=/ouster/points
+      odom_topic:=/zed2i/zed_node/odom
       frame_id:=chassis_link
+      publish_tf:=false
       approx_sync:=true
+      approx_sync_max_interval:=0.1
+      topic_queue_size:=10
       rtabmap_viz:=false
-      database_path:=/root/Documents/RTAB-Map/rtabmap.db
+      database_path:=/root/Documents/RTAB-Map/rtabmap_new.db
       args:="--delete_db_on_start"
       params_file:=/workspace/config/params.yaml
-
+#lidar only command
+# command: >
+   #   ros2 launch rtabmap_launch rtabmap.launch.py
+ # scan_cloud_topic:=/ouster/points
+ # imu_topic:=/ouster/imu
+ # frame_id:=chassis_link
+ # odom_frame_id:=odom
+ # approx_sync:=true
+ # visual_odometry:=false
+ # subscribe_scan_cloud:=true
+ # subscribe_depth:=false
+  #rtabmap_viz:=false
+  #database_path:=/root/Documents/RTAB-Map/rtabmap_lidar_new.db
+  #args:="--delete_db_on_start"
+  #params_file:=/workspace/config/params.yaml
   app_zed2i_camera:
     build:
       context: ./app_zed2i_camera
@@ -147,10 +169,12 @@ services:
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=compute,video,utility
       - ROS_DOMAIN_ID=0
+      - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
     devices:
       - /dev/video0:/dev/video0
       - /dev/bus/usb:/dev/bus/usb
     network_mode: host
+    ipc: host
     stdin_open: true
     tty: true
     volumes:
@@ -164,7 +188,7 @@ services:
       timeout: 5s
       retries: 30
       start_period: 120s
-    command: ros2 launch zed_wrapper zed_camera.launch.py camera_model:=zed2i camera_name:=zed2i
+    command: ros2 launch zed_wrapper zed_camera.launch.py camera_model:=zed2i camera_name:=zed2i publish_urdf:=false publish_tf:=false publish_map_tf:=false
     #command: tail -f /dev/null
 #  app_nav2:
 #    build:
