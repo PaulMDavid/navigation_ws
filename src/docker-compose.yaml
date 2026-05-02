@@ -181,6 +181,7 @@ services:
       - ./rosbags:/workspace/rosbags
       - ./app_zed2i_camera/zed-ros2-wrapper:/workspace/src/zed-ros2-wrapper
       - ./app_zed2i_camera:/workspace/src/zed2i_camera
+      - /mnt/ssd/zed2i_camcalib:/usr/local/zed/settings
     healthcheck:
       test: ["CMD", "bash", "-lc", "source /opt/ros/humble/setup.bash && source /workspace/install/setup.bash 2>/dev/null || true; ros2 topic list | grep -q '/zed2i/zed_node/rgb/color/rect/image'"
       ]
