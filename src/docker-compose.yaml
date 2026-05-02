@@ -113,7 +113,7 @@ services:
       - ./app_rtab_map:/workspace
       - ./app_rtab_map/data:/workspace/data
       - ./app_rtab_map/config:/workspace/config
-      - /mnt/check/rtabmap_database:/root/Documents/RTAB-Map
+      - /mnt/ssd/rtabmap_database:/root/Documents/RTAB-Map
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
     environment:
       - ROS_DISTRO=humble
