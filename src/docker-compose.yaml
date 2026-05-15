@@ -133,9 +133,12 @@ services:
       camera_info_topic:=/zed2i/zed_node/rgb/color/rect/camera_info
       depth_topic:=/zed2i/zed_node/depth/depth_registered
       scan_cloud_topic:=/ouster/points
-      odom_topic:=/zed2i/zed_node/odom
+      #odom_topic:=/zed2i/zed_node/odom
+      publish_tf:=true
+      odom_frame_id:=odom
       frame_id:=chassis_link
-      publish_tf:=false
+      visual_odometry:=true
+      icp_odometry:=false
       approx_sync:=true
       approx_sync_max_interval:=0.1
       topic_queue_size:=10
@@ -190,7 +193,7 @@ services:
       timeout: 5s
       retries: 30
       start_period: 120s
-    command: ros2 launch zed_wrapper zed_camera.launch.py camera_model:=zed2i camera_name:=zed2i publish_urdf:=false publish_tf:=false publish_map_tf:=false
+    command: ros2 launch zed_wrapper zed_camera.launch.py camera_model:=zed2i camera_name:=zed2i publish_urdf:=false publish_tf:=false publish_map_tf:=false base_frame:=chassis_link
     #command: tail -f /dev/null
 #  app_nav2:
 #    build:
