@@ -2,17 +2,17 @@ services:
   ros:
     build:
       context: .
-      dockerfile: Dockerfile.template
+      dockerfile: Dockerfile
       args:
         ROS_DISTRO: humble
-    container_name: template_ros_container
+    container_name: app_microstrain
     tty: true
     stdin_open: true
 
     # Mount your project directories
     #NOTE: remove  or add volumes as needed, and adjust paths if necessary
     volumes:
-      - .:/workspace/src/app_template
+      - .:/workspace/src/app_microstrain
       - ./data:/workspace/data
       - ./config:/workspace/config
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
@@ -33,6 +33,4 @@ services:
   
     working_dir: /workspace
 
-    #command: ros2 launch app_template template.launch.py
-    #add tdev null to avoid error when no command is provided, and to keep the container running
-    command: tail -f /dev/null
+    command: ros2 launch app_microstrain microstrain.launch.py

@@ -16,13 +16,11 @@ setup(
     ],
     install_requires=['setuptools'],
     zip_safe=True,
-    maintainer='Paul Mangalam',
+    maintainer='Paul Mangalam, Taha',
     maintainer_email='p.david@campus.tu-berlin.de',
-    description='Template navigation package',
+    description='Microstrain Imu package',
     license='MIT',
     entry_points={
-        'console_scripts': [
-            'template_node = app_template.template_node:main',
-        ],
+        'console_scripts': [],
     },
 )
