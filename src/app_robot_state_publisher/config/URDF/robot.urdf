@@ -26,6 +26,12 @@
       <inertia ixx="0.6797017835" ixy="-0.0079907052" ixz="0.0127828566" iyy="1.2877765418" iyz="0.0117679376" izz="1.6878998816"/>
     </inertial>
   </link>
+  <link name="imu_link"/>
+  <joint name="imu_link_joint" type="fixed">
+    <origin xyz="0.15 0.0 0.10" rpy="0 0 0"/>
+    <parent link="chassis_link"/>
+    <child link="imu_link"/>
+  </joint>
   <link name="shaft_left_link">
     <visual>
       <origin rpy="-1.5707963267948966 -1.5707963267948966 0.0" xyz="-0.1 0.0 -0.231"/>
