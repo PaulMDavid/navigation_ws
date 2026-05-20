@@ -33,4 +33,4 @@ services:
   
     working_dir: /workspace
 
-    command: ros2 launch app_microstrain microstrain.launch.py
+    command: ros2 launch app_microstrain app_microstrain.launch.py
