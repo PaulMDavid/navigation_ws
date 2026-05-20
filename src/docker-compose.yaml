@@ -161,6 +161,29 @@ services:
   #database_path:=/root/Documents/RTAB-Map/rtabmap_lidar_new.db
   #args:="--delete_db_on_start"
   #params_file:=/workspace/config/params.yaml
+  app_microstrain:
+    build:
+      context: ./app_microstrain
+      dockerfile: Dockerfile
+      args:
+        ROS_DISTRO: humble
+    container_name: app_microstrain_container
+    tty: true
+    stdin_open: true
+    devices:
+      - /dev/ttyACM0:/dev/ttyACM0
+    volumes:
+      - ./app_microstrain:/workspace/src/app_microstrain
+      - ./app_microstrain/config:/workspace/config
+    environment:
+      - ROS_DISTRO=humble
+      - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+      - ROS_DOMAIN_ID=0
+    network_mode: host
+    ipc: host
+    privileged: true
+    working_dir: /workspace
+    command: ros2 launch app_microstrain app_microstrain.launch.py
   app_zed2i_camera:
     build:
       context: ./app_zed2i_camera
