@@ -138,6 +138,8 @@ services:
       icp_odometry:=true
       subscribe_scan_cloud:=true
       subscribe_depth:=false
+      subscribe_rgb:=false
+      subscribe_stereo:=false
       qos:=2
       qos_imu:=2
       qos_scan:=2
