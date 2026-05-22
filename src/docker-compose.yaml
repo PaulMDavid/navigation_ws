@@ -138,16 +138,12 @@ services:
       icp_odometry:=true
       subscribe_scan_cloud:=true
       depth:=false
-      subscribe_rgb:=false
-      subscribe_stereo:=false
       qos:=2
       qos_imu:=2
       qos_scan:=2
-      qos_sensor_data:=2
       rtabmap_viz:=false
       database_path:=/root/Documents/RTAB-Map/rtabmap_lidar.db
-      args:="--delete_db_on_start"
-      params_file:=/workspace/config/params.yaml
+      args:="--delete_db_on_start --Icp/VoxelSize 0.2 --Icp/Iterations 20 --Icp/PointToPlaneK 5 --Icp/PointToPlane true --Icp/MaxCorrespondenceDistance 1.0 --Reg/Strategy 1 --Reg/Force3DoF false --Grid/Sensor 0 --Grid/RangeMax 20.0 --Grid/RangeMin 0.5 --RGBD/ProximityBySpace true --RGBD/AngularUpdate 0.05 --RGBD/LinearUpdate 0.05 --Optimizer/Strategy 1 --Optimizer/Iterations 20"
     # To switch back to RGBD + lidar later, run:
     #   docker compose -f docker-compose.yaml -f docker-compose.rtabmap_camera.yaml up
     # Previous RGBD + lidar command:
