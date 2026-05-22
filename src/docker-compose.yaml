@@ -138,6 +138,10 @@ services:
       icp_odometry:=true
       subscribe_scan_cloud:=true
       subscribe_depth:=false
+      qos:=2
+      qos_imu:=2
+      qos_scan:=2
+      qos_sensor_data:=2
       rtabmap_viz:=false
       database_path:=/root/Documents/RTAB-Map/rtabmap_lidar.db
       args:="--delete_db_on_start"
