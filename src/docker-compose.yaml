@@ -137,7 +137,7 @@ services:
       visual_odometry:=false
       icp_odometry:=true
       subscribe_scan_cloud:=true
-      subscribe_depth:=false
+      depth:=false
       subscribe_rgb:=false
       subscribe_stereo:=false
       qos:=2
