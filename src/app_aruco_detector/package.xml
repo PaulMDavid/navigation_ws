@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>aruco_detector</name>
+  <version>0.0.1</version>
+  <description>ArUco marker detection package</description>
+  <maintainer email="p.david@campus.tu-berlin.de">Paul Mangalam</maintainer>
+  <license>AHHHH;IDK</license>
+
+  <buildtool_depend>ament_python</buildtool_depend>
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>cv_bridge</exec_depend>
+  <exec_depend>opencv-python</exec_depend>
+  <exec_depend>aruco_detector_msgs</exec_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

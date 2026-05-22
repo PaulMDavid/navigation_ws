@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>app_microstrain</name>
+  <version>0.0.1</version>
+  <description>Navigation subsystem template</description>
+  <maintainer email="p.david@campus.tu-berlin.de">Paul Mangalam</maintainer>
+  <license>AHHHH;IDK</license>
+
+  <buildtool_depend>ament_python</buildtool_depend>
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

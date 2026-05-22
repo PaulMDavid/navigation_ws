@@ -1,0 +1,35 @@
+services:
+  ros:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        ROS_DISTRO: humble
+    container_name: aruco_detector_ros_container
+    tty: true
+    stdin_open: true
+
+    # Mount your project directories
+    volumes:
+      - .:/workspace/src/aruco_detector
+      - ./data:/workspace/data
+      - ./config:/workspace/config
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+
+    environment:
+      - ROS_DISTRO=humble
+      - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+      - DEBIAN_FRONTEND=noninteractive
+      - DISPLAY=${DISPLAY}
+      - QT_X11_NO_MITSHM=1
+      - XDG_RUNTIME_DIR=/tmp/runtime-root
+      - ROS_DOMAIN_ID=0
+
+    # Allows GUI tools (rviz, rqt, etc.)
+    network_mode: host
+    privileged: true
+
+  
+    working_dir: /workspace
+    #command: tail -f /dev/null
+    command: ros2 launch aruco_detector aruco_detector.launch.py

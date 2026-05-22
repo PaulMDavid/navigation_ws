@@ -1,0 +1,7 @@
+zed2i_camera:
+  ros__parameters:
+    resolution: 'VGA'  # HD2K, HD1080, HD720, VGA
+    fps: 15
+    depth_mode: 'NONE'  # NONE, PERFORMANCE, QUALITY, ULTRA, NEURAL, NEURAL_PLUS
+    publish_depth: false
+    publish_rgb: true

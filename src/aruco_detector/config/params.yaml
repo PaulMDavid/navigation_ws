@@ -1,5 +1,0 @@
-aruco_detector:
-  ros__parameters:
-    aruco_dict: 'DICT_6X6_250'
-    camera_id: 0
-    use_webcam: true

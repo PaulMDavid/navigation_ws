@@ -10,6 +10,7 @@ services:
     stdin_open: true
 
     # Mount your project directories
+    #NOTE: remove  or add volumes as needed, and adjust paths if necessary
     volumes:
       - .:/workspace/src/app_template
       - ./data:/workspace/data
@@ -23,6 +24,7 @@ services:
       - DISPLAY=${DISPLAY}
       - QT_X11_NO_MITSHM=1
       - XDG_RUNTIME_DIR=/tmp/runtime-root
+      - ROS_DOMAIN_ID=0
 
     # Allows GUI tools (rviz, rqt, etc.)
     network_mode: host
@@ -31,9 +33,6 @@ services:
   
     working_dir: /workspace
 
-
-    
-    entrypoint: ["/bin/bash", "-c", "source /opt/ros/humble/setup.bash && exec bash"]
-
-
-    command: ros2 launch app_template template.launch.py
+    #command: ros2 launch app_template template.launch.py
+    #add tdev null to avoid error when no command is provided, and to keep the container running
+    command: tail -f /dev/null

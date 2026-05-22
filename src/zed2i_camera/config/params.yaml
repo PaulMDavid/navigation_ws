@@ -1,7 +1,0 @@
-zed2i_camera:
-  ros__parameters:
-    resolution: 'HD720'  # HD2K, HD1080, HD720, VGA
-    fps: 30
-    depth_mode: 'PERFORMANCE'  # PERFORMANCE, QUALITY, ULTRA
-    publish_depth: true
-    publish_rgb: true
