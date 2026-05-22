@@ -18,7 +18,8 @@
     wait_imu_to_init: true
 
     # Odometry
-    visual_odometry: true
+    visual_odometry: false
+    icp_odometry: true
 
     # Database
     database_path: /root/Documents/RTAB-Map/rtabmap.db
