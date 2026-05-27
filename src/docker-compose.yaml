@@ -131,6 +131,9 @@ services:
       ros2 launch rtabmap_launch rtabmap.launch.py
       scan_cloud_topic:=/ouster/points
       imu_topic:=/ouster/imu
+      rgb_topic:=/zed2i/zed_node/rgb/color/rect/image
+      camera_info_topic:=/zed2i/zed_node/camera_info
+      subscribe_rgb:=true
       frame_id:=chassis_link
       odom_frame_id:=odom
       approx_sync:=true
