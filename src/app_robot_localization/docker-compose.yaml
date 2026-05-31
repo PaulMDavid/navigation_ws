@@ -15,7 +15,6 @@ services:
       - .:/workspace/src/app_robot_localization
       - ./data:/workspace/data
       - ./config:/workspace/config
-      - /tmp/.X11-unix:/tmp/.X11-unix:rw
 
     environment:
       - ROS_DISTRO=humble
