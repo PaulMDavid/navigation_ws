@@ -2,17 +2,17 @@ services:
   ros:
     build:
       context: .
-      dockerfile: Dockerfile.template
+      dockerfile: Dockerfile
       args:
         ROS_DISTRO: humble
-    container_name: template_ros_container
+    container_name: app_robot_localization
     tty: true
     stdin_open: true
 
     # Mount your project directories
     #NOTE: remove  or add volumes as needed, and adjust paths if necessary
     volumes:
-      - .:/workspace/src/app_template
+      - .:/workspace/src/app_robot_localization
       - ./data:/workspace/data
       - ./config:/workspace/config
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
@@ -21,14 +21,11 @@ services:
       - ROS_DISTRO=humble
       - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
       - DEBIAN_FRONTEND=noninteractive
-      - DISPLAY=${DISPLAY}
-      - QT_X11_NO_MITSHM=1
-      - XDG_RUNTIME_DIR=/tmp/runtime-root
       - ROS_DOMAIN_ID=0
 
-    # Allows GUI tools (rviz, rqt, etc.)
     network_mode: host
     privileged: true
+    ipc: host
 
   
     working_dir: /workspace

@@ -10,15 +10,14 @@ RUN apt-get update && apt-get install -y \
     git wget curl vim nano \
     python3-pip python3-colcon-common-extensions python3-rosdep \
     ros-${ROS_DISTRO}-rmw-cyclonedds-cpp \
-    ros-${ROS_DISTRO}-tf2-tools \
-    ros-${ROS_DISTRO}-robot-state-publisher \
-    ros-${ROS_DISTRO}-xacro \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /workspace
 RUN mkdir -p /workspace/src
 
 RUN rosdep update
+
+COPY robot_localization_erc26 /workspace/src/robot_localization
 
 COPY postcreatecommand.sh /postcreatecommand.sh
 RUN chmod +x /postcreatecommand.sh

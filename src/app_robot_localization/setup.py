@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 from glob import glob
 import os
 
-package_name = 'app_template'
+package_name = 'app_robot_localization'
 
 setup(
     name=package_name,
@@ -18,11 +18,11 @@ setup(
     zip_safe=True,
     maintainer='Paul Mangalam',
     maintainer_email='p.david@campus.tu-berlin.de',
-    description='Template navigation package',
+    description='Robot localization package',
     license='MIT',
     entry_points={
         'console_scripts': [
-            'template_node = app_template.template_node:main',
+            'robot_localization_wrapper_node = app_robot_localization.wrapper_node:main',
         ],
     },
 )
