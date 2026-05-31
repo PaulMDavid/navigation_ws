@@ -115,6 +115,8 @@ services:
       - ./app_rtab_map/config:/workspace/config
       - /mnt/ssd/rtabmap_database:/root/Documents/RTAB-Map
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - /home/pdavid/Desktop/uni/erc_clean/rtabmap_databases:/workspace/rtabmap_databases
+
     environment:
       - ROS_DISTRO=humble
       - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
@@ -141,7 +143,7 @@ services:
       qos:=2
       qos_imu:=2
       qos_scan:=2
-      rtabmap_viz:=false
+      rtabmap_viz:=true
       database_path:=/root/Documents/RTAB-Map/rtabmap_lidar.db
       args:="--delete_db_on_start --Icp/VoxelSize 0.2 --Icp/Iterations 20 --Icp/PointToPlaneK 5 --Icp/PointToPlane true --Icp/MaxCorrespondenceDistance 1.0 --Reg/Strategy 1 --Reg/Force3DoF false --Grid/Sensor 0 --Grid/RangeMax 20.0 --Grid/RangeMin 0.5 --RGBD/ProximityBySpace true --RGBD/AngularUpdate 0.05 --RGBD/LinearUpdate 0.05 --Optimizer/Strategy 1 --Optimizer/Iterations 20"
     # To switch back to RGBD + lidar later, run:
