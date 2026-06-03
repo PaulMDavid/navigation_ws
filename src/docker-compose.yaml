@@ -104,11 +104,11 @@ services:
     container_name: app_rtab_map_container
     tty: true
     stdin_open: true
-   # depends_on:
-   #   app_zed2i_camera:
-   #     condition: service_healthy
-   #   app_lidar_ouster_ros:
-   #     condition: service_healthy
+    depends_on:
+      app_zed2i_camera:
+        condition: service_healthy
+      app_lidar_ouster_ros:
+        condition: service_healthy
     volumes:
       - ./app_rtab_map:/workspace
       - ./app_rtab_map/data:/workspace/data
@@ -129,48 +129,28 @@ services:
     working_dir: /workspace
     command: >
       ros2 launch rtabmap_launch rtabmap.launch.py
-      scan_cloud_topic:=/ouster/points
-      imu_topic:=/ouster/imu
       rgb_topic:=/zed2i/zed_node/rgb/color/rect/image
       camera_info_topic:=/zed2i/zed_node/rgb/color/rect/camera_info
-      subscribe_rgb:=true
-      frame_id:=chassis_link
-      odom_frame_id:=odom
-      approx_sync:=true
-      visual_odometry:=false
-      icp_odometry:=true
+      depth_topic:=/zed2i/zed_node/depth/depth_registered
+      scan_cloud_topic:=/ouster/points
+      imu_topic:=/ouster/imu
+      subscribe_imu:=true
       subscribe_scan_cloud:=true
-      depth:=false
+      frame_id:=chassis_link
+      publish_tf:=true
+      odom_frame_id:=odom
+      visual_odometry:=true
+      icp_odometry:=false
+      approx_sync:=true
+      approx_sync_max_interval:=0.1
+      topic_queue_size:=10
+      rtabmap_viz:=false
       qos:=2
       qos_imu:=2
       qos_scan:=2
-      rtabmap_viz:=false
-      database_path:=/root/Documents/RTAB-Map/rtabmap_lidar.db
-      args:="--delete_db_on_start --Icp/VoxelSize 0.2 --Icp/Iterations 20 --Icp/PointToPlaneK 5 --Icp/PointToPlane true --Icp/MaxCorrespondenceDistance 1.0 --Reg/Strategy 1 --Reg/Force3DoF false --Grid/Sensor 0 --Grid/RangeMax 20.0 --Grid/RangeMin 0.5 --RGBD/ProximityBySpace true --RGBD/AngularUpdate 0.05 --RGBD/LinearUpdate 0.05 --Optimizer/Strategy 1 --Optimizer/Iterations 20"
-    # To switch back to RGBD + lidar later, run:
-    #   docker compose -f docker-compose.yaml -f docker-compose.rtabmap_camera.yaml up
-    # Previous RGBD + lidar command:
-    # command: >
-    #   ros2 launch rtabmap_launch rtabmap.launch.py
-    #   rgb_topic:=/zed2i/zed_node/rgb/color/rect/image
-    #   camera_info_topic:=/zed2i/zed_node/rgb/color/rect/camera_info
-    #   depth_topic:=/zed2i/zed_node/depth/depth_registered
-    #   scan_cloud_topic:=/ouster/points
-    #   #odom_topic:=/zed2i/zed_node/odom
-    #   publish_tf:=true
-    #   odom_frame_id:=odom
-    #   frame_id:=chassis_link
-    #   visual_odometry:=true
-    #   icp_odometry:=false
-    #   approx_sync:=true
-    #   approx_sync_max_interval:=0.1
-    #   topic_queue_size:=10
-    #   rtabmap_viz:=false
-    #   database_path:=/root/Documents/RTAB-Map/rtabmap_new.db
-    #   args:="--delete_db_on_start"
-    #   params_file:=/workspace/config/params.yaml
-    #
-    # Uncomment the override file above if you want the old RGBD+lidar mode.
+      database_path:=/root/Documents/RTAB-Map/rtabmap_vslam.db
+      args:="--delete_db_on_start --Reg/Force3DoF false --Grid/Sensor 0 --Grid/RangeMax 20.0 --Grid/RangeMin 0.5 --RGBD/ProximityBySpace true --RGBD/AngularUpdate 0.05 --RGBD/LinearUpdate 0.05 --Optimizer/Strategy 1 --Optimizer/Iterations 20"
+      params_file:=/workspace/config/params.yaml
 
   app_microstrain:
     build:
