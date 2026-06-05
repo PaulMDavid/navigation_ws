@@ -113,4 +113,4 @@ services:
     ipc: host
     privileged: true
     working_dir: /workspace
-    command: ros2 launch nav2_bringup navigation_launch.py use_sim_time:=true params_file:=/workspace/src/app_nav2/config/params.yaml
+    command: ros2 launch app_nav2 nav2.launch.py
