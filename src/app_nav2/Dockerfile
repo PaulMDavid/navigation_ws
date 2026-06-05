@@ -18,7 +18,7 @@ RUN apt-get update && apt-get install -y \
     ros-${ROS_DISTRO}-nav2-costmap-2d \
     ros-${ROS_DISTRO}-nav2-lifecycle-manager \
     ros-${ROS_DISTRO}-nav2-map-server \
-    ros-${ROS_DISTRO}-nav2-recoveries \
+    ros-${ROS_DISTRO}-nav2-behaviors \
     ros-${ROS_DISTRO}-nav2-waypoint-follower \
     ros-${ROS_DISTRO}-nav2-smoother \
     && rm -rf /var/lib/apt/lists/*
