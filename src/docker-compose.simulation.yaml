@@ -22,6 +22,12 @@ services:
     network_mode: host
     ipc: host
     privileged: true
+    command: >
+      ros2 launch morpheus_simulation morpheus_simulation.launch.py
+      enable_input:=true
+      enable_monitoring:=false
+      controller_type:=keyboard
+      node_type:=both
     deploy:
       resources:
         reservations:
@@ -76,7 +82,7 @@ services:
       qos_scan:=2
       rtabmap_viz:=true
       database_path:=/root/Documents/RTAB-Map/rtabmap_sim.db
-      args:="--delete_db_on_start --Icp/VoxelSize 0.2 --Icp/Iterations 20 --Icp/PointToPlaneK 5 --Icp/PointToPlane true --Icp/MaxCorrespondenceDistance 1.0 --Icp/CorrespondenceRatio 0.05 --Reg/Strategy 1 --Reg/Force3DoF false --Grid/Sensor 0 --Grid/RangeMax 20.0 --Grid/RangeMin 0.5 --RGBD/ProximityBySpace true --RGBD/AngularUpdate 0.05 --RGBD/LinearUpdate 0.05 --Optimizer/Strategy 1 --Optimizer/Iterations 20"
+      args:="--delete_db_on_start --Icp/VoxelSize 0.2 --Icp/Iterations 20 --Icp/PointToPlaneK 5 --Icp/PointToPlane true --Icp/MaxCorrespondenceDistance 1.0 --Icp/CorrespondenceRatio 0.05 --Icp/MaxTranslation 2.0 --Icp/MaxRotation 1.57 --Reg/Strategy 1 --Reg/Force3DoF false --Grid/Sensor 0 --Grid/RangeMax 20.0 --Grid/RangeMin 0.5 --RGBD/ProximityBySpace true --RGBD/AngularUpdate 0.05 --RGBD/LinearUpdate 0.05 --Optimizer/Strategy 1 --Optimizer/Iterations 20"
 
   app_nav2:
     build:
