@@ -1,0 +1,3 @@
+[submodule "li_slam_ros2"]
+	url = https://github.com/PaulMDavid/li_slam_ros2.git
+	branch = erc25/ouster-humble-fixes
