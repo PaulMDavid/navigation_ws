@@ -147,9 +147,6 @@ services:
       approx_sync_max_interval:=0.1
       topic_queue_size:=10
       rtabmap_viz:=false
-      qos:=1
-      qos_imu:=1
-      qos_scan:=1
       database_path:=/root/Documents/RTAB-Map/rtabmap_vslam.db
       args:="--delete_db_on_start --Reg/Force3DoF false --Grid/Sensor 0 --Grid/RangeMax 20.0 --Grid/RangeMin 0.5 --RGBD/ProximityBySpace true --RGBD/AngularUpdate 0.05 --RGBD/LinearUpdate 0.05 --Optimizer/Strategy 1 --Optimizer/Iterations 20"
       params_file:=/workspace/config/params.yaml
