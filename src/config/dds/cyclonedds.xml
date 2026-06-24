@@ -1,0 +1,15 @@
+<CycloneDDS>
+  <Domain>
+    <General>
+      <AllowMulticast>true</AllowMulticast>
+      <NetworkInterfaceAddress>eno1</NetworkInterfaceAddress>
+    </General>
+    <Discovery>
+      <Peers>
+        <Peer Address="192.168.1.100"/>
+        <Peer Address="192.168.1.210"/>
+        <Peer Address="192.168.1.230"/>
+      </Peers>
+    </Discovery>
+  </Domain>
+</CycloneDDS>

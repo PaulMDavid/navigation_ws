@@ -1,10 +1,17 @@
-from launch import LaunchDescription
+kkkfrom launch import LaunchDescription
 from launch.actions import IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from ament_index_python.packages import get_package_share_directory
 import os
 
-params_file = os.path.join('/workspace', 'src', 'app_nav2', 'config', 'params.yaml')
+
+params_file = os.path.join(
+    '/workspace',
+    'src',
+    'app_nav2',
+    'config',
+    'params.yaml'
+)
 
 
 def generate_launch_description():
@@ -16,9 +23,12 @@ def generate_launch_description():
         ),
         launch_arguments={
             'use_sim_time': 'false',
-            # map and odom TF come from app_rtab_map — no map_server needed here
             'params_file': params_file,
         }.items(),
+        remappings=[
+            ('/map', '/rtabmap/map'),
+            ('/odom', '/rtabmap/odom'),
+        ]
     )
 
     return LaunchDescription([nav2_launch])
