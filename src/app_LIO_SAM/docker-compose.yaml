@@ -1,0 +1,40 @@
+services:
+  ros:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        ROS_DISTRO: humble
+    container_name: app_lio_sam
+    tty: true
+    stdin_open: true
+
+    # Mount your project directories
+    #NOTE: remove  or add volumes as needed, and adjust paths if necessary
+    volumes:
+      - .:/workspace/src/app_lio_sam
+      - ./li_slam_ros2:/workspace/src/li_slam_ros2
+      - ./data:/workspace/data
+      - ./config:/workspace/config
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - ./resource:/workspace/resource
+
+    environment:
+      - ROS_DISTRO=humble
+      - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+      - DEBIAN_FRONTEND=noninteractive
+      - DISPLAY=${DISPLAY}
+      - QT_X11_NO_MITSHM=1
+      - XDG_RUNTIME_DIR=/tmp/runtime-root
+      - ROS_DOMAIN_ID=0
+
+    # Allows GUI tools (rviz, rqt, etc.)
+    network_mode: host
+    privileged: true
+
+  
+    working_dir: /workspace
+
+    #command: ros2 launch app_template template.launch.py
+    #add tdev null to avoid error when no command is provided, and to keep the container running
+    command: ros2 launch scanmatcher lio.launch.py mapping_param_dir:=/workspace/src/li_slam_ros2/scanmatcher/param/lio.yaml

@@ -1,0 +1,34 @@
+services:
+  ros:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        ROS_DISTRO: humble
+    container_name: app_robot_localization
+    tty: true
+    stdin_open: true
+
+    # Mount your project directories
+    #NOTE: remove  or add volumes as needed, and adjust paths if necessary
+    volumes:
+      - .:/workspace/src/app_robot_localization
+      - ./data:/workspace/data
+      - ./config:/workspace/config
+
+    environment:
+      - ROS_DISTRO=humble
+      - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+      - DEBIAN_FRONTEND=noninteractive
+      - ROS_DOMAIN_ID=0
+
+    network_mode: host
+    privileged: true
+    ipc: host
+
+  
+    working_dir: /workspace
+
+    #command: ros2 launch app_template template.launch.py
+    #add tdev null to avoid error when no command is provided, and to keep the container running
+    command: tail -f /dev/null

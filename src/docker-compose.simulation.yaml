@@ -1,0 +1,116 @@
+services:
+  simulation:
+    build:
+      context: ./erc-26-simulation
+      dockerfile: docker/Dockerfile_simulation
+    image: morpheus:simulation
+    container_name: morpheus_simulation
+    tty: true
+    stdin_open: true
+    environment:
+      - ROS_DOMAIN_ID=0
+      - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+      - USE_SIM_TIME=true
+      - DISPLAY=${DISPLAY}
+      - QT_X11_NO_MITSHM=1
+      - XAUTHORITY=${XAUTHORITY}
+      - NVIDIA_DRIVER_CAPABILITIES=all
+    volumes:
+      - ./erc-26-simulation/simulation_ws/src:/sim_ws/src:ro
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - "$HOME/.Xauthority:/root/.Xauthority:rw"
+    network_mode: host
+    ipc: host
+    privileged: true
+    command: >
+      ros2 launch morpheus_simulation morpheus_simulation.launch.py
+      enable_input:=true
+      enable_monitoring:=false
+      controller_type:=keyboard
+      node_type:=both
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  app_rtab_map:
+    build:
+      context: ./app_rtab_map
+      dockerfile: Dockerfile
+      args:
+        ROS_DISTRO: humble
+    container_name: app_rtab_map_container
+    tty: true
+    stdin_open: true
+    depends_on:
+      - simulation
+    volumes:
+      - ./app_rtab_map:/workspace
+      - ./app_rtab_map/data:/workspace/data
+      - ./app_rtab_map/config:/workspace/config
+      - ./app_rtab_map/rtabmap_databases:/root/Documents/RTAB-Map
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+    environment:
+      - ROS_DISTRO=humble
+      - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+      - DEBIAN_FRONTEND=noninteractive
+      - DISPLAY=${DISPLAY}
+      - QT_X11_NO_MITSHM=1
+      - XDG_RUNTIME_DIR=/tmp/runtime-root
+      - ROS_DOMAIN_ID=0
+    network_mode: host
+    ipc: host
+    privileged: true
+    working_dir: /workspace
+    command: >
+      ros2 launch rtabmap_launch rtabmap.launch.py
+      scan_cloud_topic:=/scan/points
+      imu_topic:=/imu
+      frame_id:=chassis_link
+      odom_frame_id:=odom
+      approx_sync:=true
+      visual_odometry:=false
+      icp_odometry:=true
+      subscribe_scan_cloud:=true
+      depth:=false
+      use_sim_time:=true
+      qos:=2
+      qos_imu:=2
+      qos_scan:=2
+      rtabmap_viz:=true
+      database_path:=/root/Documents/RTAB-Map/rtabmap_sim.db
+      args:="--delete_db_on_start --Icp/VoxelSize 0.2 --Icp/Iterations 20 --Icp/PointToPlaneK 5 --Icp/PointToPlane true --Icp/MaxCorrespondenceDistance 1.0 --Icp/CorrespondenceRatio 0.05 --Icp/MaxTranslation 2.0 --Icp/MaxRotation 1.57 --Reg/Strategy 1 --Reg/Force3DoF false --Grid/Sensor 0 --Grid/RangeMax 20.0 --Grid/RangeMin 0.5 --RGBD/ProximityBySpace true --RGBD/AngularUpdate 0.05 --RGBD/LinearUpdate 0.05 --Optimizer/Strategy 1 --Optimizer/Iterations 20"
+
+  app_nav2:
+    build:
+      context: ./app_nav2
+      dockerfile: Dockerfile
+      args:
+        ROS_DISTRO: humble
+    container_name: app_nav2_container
+    tty: true
+    stdin_open: true
+    depends_on:
+      - simulation
+      - app_rtab_map
+    volumes:
+      - ./app_nav2:/workspace/src/app_nav2
+      - ./app_nav2/data:/workspace/data
+      - ./app_nav2/config:/workspace/config
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+    environment:
+      - ROS_DISTRO=humble
+      - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+      - DEBIAN_FRONTEND=noninteractive
+      - DISPLAY=${DISPLAY}
+      - QT_X11_NO_MITSHM=1
+      - XDG_RUNTIME_DIR=/tmp/runtime-root
+      - ROS_DOMAIN_ID=0
+    network_mode: host
+    ipc: host
+    privileged: true
+    working_dir: /workspace
+    command: ros2 launch app_nav2 nav2.launch.py
