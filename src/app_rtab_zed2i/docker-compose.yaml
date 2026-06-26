@@ -1,0 +1,53 @@
+services:
+  app_slam:
+    build:
+      context: ./     # ./app_rtab_zed2i
+      dockerfile: Dockerfile
+    container_name: app_rtab_zed2i_container
+    runtime: nvidia
+    privileged: true
+    tty: true
+    stdin_open: true
+    depends_on:
+      app_lidar_ouster_ros:
+        condition: service_healthy
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,video,utility
+      - ROS_DISTRO=humble
+      - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+      - ROS_DOMAIN_ID=0
+      - DEBIAN_FRONTEND=noninteractive
+      - DISPLAY=${DISPLAY}
+      - QT_X11_NO_MITSHM=1
+      - XDG_RUNTIME_DIR=/tmp/runtime-root
+    devices:
+      - /dev/video0:/dev/video0
+      - /dev/bus/usb:/dev/bus/usb
+    network_mode: host
+    ipc: host
+    working_dir: /workspace
+    volumes:
+      # ZED
+      - ./app_zed2i_camera/zed-ros2-wrapper:/workspace/src/zed-ros2-wrapper
+      - ./app_zed2i_camera:/workspace/src/zed2i_camera
+      - /mnt/ssd/zed2i_camcalib:/usr/local/zed/settings
+      - /mnt/ssd/zed2i_resources:/usr/local/zed/resources
+      - ./rosbags:/workspace/rosbags
+      # RTABmap
+      - ./app_rtab_map:/workspace
+      - ./app_rtab_map/data:/workspace/data
+      - ./app_rtab_map/config:/workspace/config
+      - /mnt/ssd/rtabmap_database:/root/Documents/RTAB-Map
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - /home/pdavid/Desktop/uni/erc_clean/rtabmap_databases:/workspace/rtabmap_databases
+    healthcheck: # whats this?
+      test: ["CMD", "bash", "-lc", "source /opt/ros/humble/setup.bash && source /workspace/install/setup.bash 2>/dev/null || true; ros2 topic list | grep -q '/zed2i/zed_node/rgb/color/rect/image'"
+      ]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 120s
+    command: ros2 launch zed_wrapper combined_launch.py
+    command: ros2 launch zed_wrapper zed_camera.launch.py camera_model:=zed2i camera_name:=zed2i
+    command: ros2 launch rtabmap_launch rtabmap.launch.py
