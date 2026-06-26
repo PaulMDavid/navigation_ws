@@ -52,9 +52,9 @@ RUN apt-get update \
     && rosdep update \
     && rm -rf /var/lib/apt/lists/*
 
-COPY postcreatecommand.sh /postcreatecommand.sh
-RUN chmod +x /postcreatecommand.sh
+COPY /app_zed2i_camera/postcreatecommand.sh /app_zed2i_camera/postcreatecommand.sh
+RUN chmod +x /app_zed2i_camera/postcreatecommand.sh
 
 WORKDIR /workspace
 
-ENTRYPOINT ["/postcreatecommand.sh"]
+ENTRYPOINT ["/app_zed2i_camera/postcreatecommand.sh"]
