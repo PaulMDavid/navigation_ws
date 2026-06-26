@@ -13,6 +13,7 @@ services:
       - ./app_aruco_detector/data:/workspace/data
       - ./app_aruco_detector/config:/workspace/config
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - ./config/dds/cyclonedds.xml:/etc/cyclonedds.xml:ro
     environment:
       - ROS_DISTRO=humble
       - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
@@ -21,6 +22,7 @@ services:
       - QT_X11_NO_MITSHM=1
       - XDG_RUNTIME_DIR=/tmp/runtime-root
       - ROS_DOMAIN_ID=0
+      - CYCLONEDDS_URI=file:///etc/cyclonedds.xml
     network_mode: host
     ipc: host
     privileged: true
@@ -44,6 +46,7 @@ services:
       - ./app_lidar_ouster_ros/config:/workspace/config
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
       - ./app_lidar_ouster_ros/ouster-ros/config:/workspace/install/ouster_ros/share/ouster_ros/config
+      - ./config/dds/cyclonedds.xml:/etc/cyclonedds.xml:ro
     environment:
       - ROS_DISTRO=humble
       - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
@@ -54,6 +57,7 @@ services:
       - ROS_DOMAIN_ID=0
       - OUSTER_SENSOR_HOSTNAME=169.254.61.114
       - OUSTER_LIDAR_MODE=1024x10
+      - CYCLONEDDS_URI=file:///etc/cyclonedds.xml
     network_mode: host
     ipc: host
     privileged: true
@@ -81,6 +85,7 @@ services:
       - ./app_robot_state_publisher/data:/workspace/data
       - ./app_robot_state_publisher/config:/workspace/config
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - ./config/dds/cyclonedds.xml:/etc/cyclonedds.xml:ro
     environment:
       - ROS_DISTRO=humble
       - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
@@ -89,6 +94,7 @@ services:
       - QT_X11_NO_MITSHM=1
       - XDG_RUNTIME_DIR=/tmp/runtime-root
       - ROS_DOMAIN_ID=0
+      - CYCLONEDDS_URI=file:///etc/cyclonedds.xml
     network_mode: host
     ipc: host
     privileged: true
@@ -115,6 +121,8 @@ services:
       - ./app_rtab_map/config:/workspace/config
       - /mnt/ssd/rtabmap_database:/root/Documents/RTAB-Map
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - ./config/dds/cyclonedds.xml:/etc/cyclonedds.xml:ro
+
     environment:
       - ROS_DISTRO=humble
       - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
@@ -123,6 +131,7 @@ services:
       - QT_X11_NO_MITSHM=1
       - XDG_RUNTIME_DIR=/tmp/runtime-root
       - ROS_DOMAIN_ID=0
+      - CYCLONEDDS_URI=file:///etc/cyclonedds.xml
     network_mode: host
     ipc: host
     privileged: true
@@ -136,22 +145,37 @@ services:
       imu_topic:=/ouster/imu
       subscribe_imu:=true
       subscribe_scan_cloud:=true
-      frame_id:=chassis_link
-      publish_tf:=true
-      odom_frame_id:=odom
-      visual_odometry:=true
-      icp_odometry:=false
-      approx_sync:=true
-      approx_sync_max_interval:=0.1
-      topic_queue_size:=10
-      rtabmap_viz:=false
-      qos:=1
-      qos_imu:=1
-      qos_scan:=1
-      database_path:=/root/Documents/RTAB-Map/rtabmap_vslam.db
-      args:="--delete_db_on_start --Reg/Force3DoF false --Grid/Sensor 0 --Grid/RangeMax 20.0 --Grid/RangeMin 0.5 --RGBD/ProximityBySpace true --RGBD/AngularUpdate 0.05 --RGBD/LinearUpdate 0.05 --Optimizer/Strategy 1 --Optimizer/Iterations 20"
-      params_file:=/workspace/config/params.yaml
-
+      depth:=false
+      qos:=2
+      qos_imu:=2
+      qos_scan:=2
+      rtabmap_viz:=true
+      database_path:=/root/Documents/RTAB-Map/rtabmap_lidar.db
+      args:="--delete_db_on_start --Icp/VoxelSize 0.2 --Icp/Iterations 20 --Icp/PointToPlaneK 5 --Icp/PointToPlane true --Icp/MaxCorrespondenceDistance 1.0 --Reg/Strategy 1 --Reg/Force3DoF false --Grid/Sensor 0 --Grid/RangeMax 20.0 --Grid/RangeMin 0.5 --RGBD/ProximityBySpace true --RGBD/AngularUpdate 0.05 --RGBD/LinearUpdate 0.05 --Optimizer/Strategy 1 --Optimizer/Iterations 20"
+    # To switch back to RGBD + lidar later, run:
+    #   docker compose -f docker-compose.yaml -f docker-compose.rtabmap_camera.yaml up
+    # Previous RGBD + lidar command:
+    # command: >
+    #   ros2 launch rtabmap_launch rtabmap.launch.py
+    #   rgb_topic:=/zed2i/zed_node/rgb/color/rect/image
+    #   camera_info_topic:=/zed2i/zed_node/rgb/color/rect/camera_info
+    #   depth_topic:=/zed2i/zed_node/depth/depth_registered
+    #   scan_cloud_topic:=/ouster/points
+    #   #odom_topic:=/zed2i/zed_node/odom
+    #   publish_tf:=true
+    #   odom_frame_id:=odom
+    #   frame_id:=chassis_link
+    #   visual_odometry:=true
+    #   icp_odometry:=false
+    #   approx_sync:=true
+    #   approx_sync_max_interval:=0.1
+    #   topic_queue_size:=10
+    #   rtabmap_viz:=false
+    #   database_path:=/root/Documents/RTAB-Map/rtabmap_new.db
+    #   args:="--delete_db_on_start"
+    #   params_file:=/workspace/config/params.yaml
+    #
+    # Uncomment the override file above if you want the old RGBD+lidar mode.
   app_microstrain:
     build:
       context: ./app_microstrain
@@ -168,6 +192,7 @@ services:
       - ./app_microstrain/data:/workspace/data
       - ./app_microstrain/config:/workspace/config
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - ./config/dds/cyclonedds.xml:/etc/cyclonedds.xml:ro
     environment:
       - ROS_DISTRO=humble
       - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
@@ -176,6 +201,7 @@ services:
       - QT_X11_NO_MITSHM=1
       - XDG_RUNTIME_DIR=/tmp/runtime-root
       - ROS_DOMAIN_ID=0
+      - CYCLONEDDS_URI=file:///etc/cyclonedds.xml
     network_mode: host
     ipc: host
     privileged: true
@@ -193,6 +219,8 @@ services:
       - NVIDIA_DRIVER_CAPABILITIES=compute,video,utility
       - ROS_DOMAIN_ID=0
       - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+      - CYCLONEDDS_URI=file:///etc/cyclonedds.xml
+
     devices:
       - /dev/video0:/dev/video0
       - /dev/bus/usb:/dev/bus/usb
@@ -206,6 +234,7 @@ services:
       - ./app_zed2i_camera:/workspace/src/zed2i_camera
       - /mnt/ssd/zed2i_camcalib:/usr/local/zed/settings
       - /mnt/ssd/zed2i_resources:/usr/local/zed/resources 
+      - ./config/dds/cyclonedds.xml:/etc/cyclonedds.xml:ro
     healthcheck:
       test: ["CMD", "bash", "-lc", "source /opt/ros/humble/setup.bash && source /workspace/install/setup.bash 2>/dev/null || true; ros2 topic list | grep -q '/zed2i/zed_node/rgb/color/rect/image'"
       ]
@@ -229,6 +258,7 @@ services:
 #      - ./app_nav2/data:/workspace/data
 #      - ./app_nav2/config:/workspace/config
 #      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+#      - ./config/dds/cyclonedds.xml:/etc/cyclonedds.xml:ro
 #    environment:
 #      - ROS_DISTRO=humble
 #      - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
