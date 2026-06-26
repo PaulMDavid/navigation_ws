@@ -1,7 +1,7 @@
 <CycloneDDS>
   <Domain>
     <General>
-      <AllowMulticast>true</AllowMulticast>
+      <AllowMulticast>spdp</AllowMulticast>
       <NetworkInterfaceAddress>eno1</NetworkInterfaceAddress>
     </General>
     <Discovery>
