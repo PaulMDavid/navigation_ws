@@ -1,0 +1,50 @@
+services:
+  groundstation:
+    build: .
+    image: groundstation:humble
+    container_name: groundstation
+
+    # Host networking is required so DDS multicast discovery can reach
+    # the Jetson directly over the LAN. Don't switch this to bridge mode.
+    network_mode: host
+
+    environment:
+      # Must match ROS_DOMAIN_ID set on the Jetson side (e.g. inside
+      # app_rtab_map_container)
+      - ROS_DOMAIN_ID=0
+      - CYCLONEDDS_URI=file:///etc/cyclonedds.xml
+      # Use the same RMW implementation as the Jetson side for best
+      # cross-network reliability
+      - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+
+      # Uncomment and fill in if multicast discovery doesn't reach the
+      # Jetson (different subnets, wifi client isolation, VPN, etc.).
+      # Replace <JETSON_IP> with the Jetson's actual address.
+      # - CYCLONEDDS_URI=<CycloneDDS><Domain><General><Peers><Peer Address="<JETSON_IP>"/></Peers></General></Domain></CycloneDDS>
+
+      # X11 forwarding so RViz2 can open a window on your desktop
+      - DISPLAY=${DISPLAY}
+      - QT_X11_NO_MITSHM=1
+      # Uncomment if you hit GL/rendering errors and don't have GPU
+      # passthrough set up below
+      # - LIBGL_ALWAYS_SOFTWARE=1
+
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - ${HOME}/.Xauthority:/root/.Xauthority:rw
+      - ./config/dds/cyclonedds.xml:/etc/cyclonedds.xml:ro
+
+    # Uncomment for NVIDIA GPU passthrough (requires nvidia-container-toolkit
+    # on the host). Without this, rendering falls back to software — slower
+    # but works fine for RViz at this scale.
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+
+    stdin_open: true
+    tty: true
+    command: bash
