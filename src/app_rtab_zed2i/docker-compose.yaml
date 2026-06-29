@@ -48,7 +48,7 @@ services:
  #     timeout: 5s
  #     retries: 30
  #     start_period: 120s
-    command: tail -f /dev/null
-    #command: ros2 launch zed_wrapper combined_launch.py
+#    command: tail -f /dev/null
+    command: ros2 launch zed2i_camera rtab_zed2i.launch.py
 #    command: ros2 launch zed_wrapper zed_camera.launch.py camera_model:=zed2i camera_name:=zed2i
 #    command: ros2 launch rtabmap_launch rtabmap.launch.py

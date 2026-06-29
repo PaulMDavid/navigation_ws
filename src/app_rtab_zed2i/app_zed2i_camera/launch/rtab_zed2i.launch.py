@@ -93,7 +93,7 @@ def generate_launch_description():
                     ('scan_cloud', '/ouster/points'),
                     ('imu',        '/ouster/imu'),
                 ],
-                extra_arguments=[{'use_intra_process_comms': True}],
+                extra_arguments=[{'use_intra_process_comms': False}],
             ),
         ],
     )
@@ -110,7 +110,7 @@ def generate_launch_description():
         launch_arguments={
             'camera_model':     'zed2i',
             'camera_name':      'zed2i',
-            'container_name':   'slam_container',   # join our container
+            'container_name':   'rtab_zed2i_container',   # join our container
             'namespace':        'zed2i',            # must match container namespace
             'publish_urdf':     'false',
             'publish_tf':       'false',
