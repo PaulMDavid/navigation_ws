@@ -1,3 +1,5 @@
+
+
 ekf_filter_node:
   ros__parameters:
     frequency: 30.0
@@ -6,25 +8,27 @@ ekf_filter_node:
     publish_tf: true
     print_diagnostics: true
     debug: false
-
     map_frame: map
     odom_frame: odom
     base_link_frame: chassis_link
     world_frame: odom           # local EKF, odom→base_link only
 
-    # RTAB-Map ICP odom — velocity only, not absolute pose (drifts + jumps on loop closure)
+    # ZED visual odometry — fuse pose (valid covariance), NOT twist (zero covariance → NaN)
+    # differential mode converts pose deltas to velocity internally:
+    # avoids absolute-pose jumps on loop closure AND the zero-covariance twist problem
     odom0: /odom
-    odom0_config: [false, false, false,
+    odom0_config: [true,  true,  false,
+                   false, false, true,    # x, y, yaw from pose
+                   false, false, false,   # twist disabled — ZED publishes zero twist covariance
                    false, false, false,
-                   true,  false, false,   # vx only, no vy (ackermann)
-                   false, false, true,    # vyaw
                    false, false, false]
-    odom0_differential: false
+    odom0_differential: true
     odom0_relative: false
     odom0_queue_size: 5
-    odom0_twist_rejection_threshold: 1.0
+    odom0_pose_rejection_threshold: 5.0
 
     # CV7 IMU — full orientation, angular rates, and linear acceleration (trusted)
+    # Safe to keep enabled while sensor is disconnected: no messages = simply not fused
     imu0: /imu/data
     imu0_config: [false, false, false,
                   true,  true,  true,    # roll, pitch, yaw

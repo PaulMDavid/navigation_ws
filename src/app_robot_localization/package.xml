@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package format="3">
-  <name>app_template</name>
+  <name>app_robot_localization</name>
   <version>0.0.1</version>
   <description>Navigation subsystem template</description>
   <maintainer email="p.david@campus.tu-berlin.de">Paul Mangalam</maintainer>
