@@ -17,8 +17,8 @@
     depth_topic: /zed2i/zed_node/depth/depth_registered
 
     # Subscriptions
-    subscribe_depth: false
-    subscribe_rgb: false
+    subscribe_depth: true
+    subscribe_rgb: true
     subscribe_scan_cloud: true
     subscribe_imu: true
 

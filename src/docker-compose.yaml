@@ -275,6 +275,7 @@ services:
       ipc: host
       working_dir: /workspace
       volumes:
+        - ./:/workspace/src/app_rtab_zed2i
         # ZED
         - ./app_zed2i_camera/zed-ros2-wrapper:/workspace/src/zed-ros2-wrapper
         - ./app_zed2i_camera:/workspace/src/zed2i_camera
