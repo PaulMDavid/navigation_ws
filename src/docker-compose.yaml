@@ -122,7 +122,6 @@ services:
       - /mnt/ssd/rtabmap_database:/root/Documents/RTAB-Map
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
       - ./config/dds/cyclonedds.xml:/etc/cyclonedds.xml:ro
-
     environment:
       - ROS_DISTRO=humble
       - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
@@ -176,6 +175,7 @@ services:
     #   params_file:=/workspace/config/params.yaml
     #
     # Uncomment the override file above if you want the old RGBD+lidar mode.
+
   app_microstrain:
     build:
       context: ./app_microstrain
@@ -207,6 +207,7 @@ services:
     privileged: true
     working_dir: /workspace
     command: ros2 launch app_microstrain app_microstrain.launch.py
+
   app_zed2i_camera:
     build:
       context: ./app_zed2i_camera
@@ -244,6 +245,52 @@ services:
       start_period: 120s
     command: ros2 launch zed_wrapper zed_camera.launch.py camera_model:=zed2i camera_name:=zed2i publish_urdf:=false publish_tf:=false publish_map_tf:=false base_frame:=chassis_link
     #command: tail -f /dev/null
+
+  app_rtab_zed2i:
+      build:
+        context: ./
+        dockerfile: Dockerfile
+      container_name: app_rtab_zed2i_container
+      runtime: nvidia
+      privileged: true
+      tty: true
+      stdin_open: true
+  #    depends_on:
+  #      app_lidar_ouster_ros:
+  #        condition: service_healthy
+      environment:
+        - NVIDIA_VISIBLE_DEVICES=all
+        - NVIDIA_DRIVER_CAPABILITIES=compute,video,utility
+        - ROS_DISTRO=humble
+        - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+        - ROS_DOMAIN_ID=0
+        - DEBIAN_FRONTEND=noninteractive
+        - DISPLAY=${DISPLAY}
+        - QT_X11_NO_MITSHM=1
+        - XDG_RUNTIME_DIR=/tmp/runtime-root
+      devices:
+        - /dev/video0:/dev/video0
+        - /dev/bus/usb:/dev/bus/usb
+      network_mode: host
+      ipc: host
+      working_dir: /workspace
+      volumes:
+        # ZED
+        - ./app_zed2i_camera/zed-ros2-wrapper:/workspace/src/zed-ros2-wrapper
+        - ./app_zed2i_camera:/workspace/src/zed2i_camera
+        - /mnt/ssd/zed2i_camcalib:/usr/local/zed/settings
+        - /mnt/ssd/zed2i_resources:/usr/local/zed/resources
+        - ./rosbags:/workspace/rosbags
+        # RTABmap
+        - ./app_rtab_map:/workspace
+        - ./app_rtab_map/data:/workspace/data
+        - ./app_rtab_map/config:/workspace/config
+        - /mnt/ssd/rtabmap_database:/root/Documents/RTAB-Map
+        - /tmp/.X11-unix:/tmp/.X11-unix:rw
+        - /home/pdavid/Desktop/uni/erc_clean/rtabmap_databases:/workspace/rtabmap_databases
+      command: ros2 launch zed2i_camera rtab_zed2i.launch.py
+
+
 #  app_nav2:
 #    build:
 #      context: ./app_nav2
