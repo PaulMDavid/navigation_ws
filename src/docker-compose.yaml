@@ -275,7 +275,7 @@ services:
       ipc: host
       working_dir: /workspace
       volumes:
-        - ./:/workspace/src/app_rtab_zed2i
+        - ./app_rtab_zed2i:/workspace/src/app_rtab_zed2i
         # ZED
         - ./app_zed2i_camera/zed-ros2-wrapper:/workspace/src/zed-ros2-wrapper
         - ./app_zed2i_camera:/workspace/src/zed2i_camera
@@ -288,8 +288,8 @@ services:
         - ./app_rtab_map/config:/workspace/config
         - /mnt/ssd/rtabmap_database:/root/Documents/RTAB-Map
         - /tmp/.X11-unix:/tmp/.X11-unix:rw
-        - /home/pdavid/Desktop/uni/erc_clean/rtabmap_databases:/workspace/rtabmap_databases
-      #command: ros2 launch zed2i_camera rtab_zed2i.launch.py
+        - /home/pdavid/Desktop/uni/erc_clean/rtabmap_databases:/workspace/rtabmap_databases      
+      #command: ros2 launch rtab_zed2i rtab_zed2i.launch.py
       command: tail -f /dev/null
 
 
