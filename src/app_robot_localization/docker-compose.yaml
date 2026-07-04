@@ -31,4 +31,4 @@ services:
 
     #command: ros2 launch app_template template.launch.py
     #add tdev null to avoid error when no command is provided, and to keep the container running
-    command: tail -f /dev/null
+    command: ros2 launch app_robot_localization localization.launch.py

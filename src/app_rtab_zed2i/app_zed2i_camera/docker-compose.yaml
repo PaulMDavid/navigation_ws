@@ -1,0 +1,21 @@
+services:
+  zed_camera:
+    build: .
+    container_name: app_zed2i_camera
+    runtime: nvidia               # Enable NVIDIA runtime
+    privileged: true
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,video,utility
+      - ROS_DOMAIN_ID=0
+    devices:
+      - /dev/video0:/dev/video0  # ZED camera video device
+      - /dev/bus/usb:/dev/bus/usb
+    network_mode: host            # ROS2 requires host networking
+    stdin_open: true
+    tty: true
+    volumes:
+      - ../rosbags:/workspace/rosbags
+      - ./zed-ros2-wrapper:/workspace/src/zed-ros2-wrapper
+      - .:/workspace/src/zed2i_camera
+    command: ros2 launch zed_wrapper zed_camera.launch.py camera_model:=zed2i camera_name:=zed2i

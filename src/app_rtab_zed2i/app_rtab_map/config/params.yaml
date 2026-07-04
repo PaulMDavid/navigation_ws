@@ -1,0 +1,68 @@
+/**:
+  ros__parameters:
+    # Frames
+    frame_id: chassis_link
+    odom_frame_id: odom
+    map_frame_id: map
+
+    # Sync
+    approx_sync: true
+    approx_sync_max_interval: 0.1
+    queue_size: 10
+    topic_queue_size: 10
+
+    # Topics
+    rgb_topic: /zed2i/zed_node/rgb/color/rect/image
+    camera_info_topic: /zed2i/zed_node/rgb/color/rect/camera_info
+    depth_topic: /zed2i/zed_node/depth/depth_registered
+
+    # Subscriptions
+    subscribe_depth: true
+    subscribe_rgb: true
+    subscribe_scan_cloud: true
+    subscribe_imu: true
+
+    # IMU
+    imu_topic: /ouster/imu
+    wait_imu_to_init: true
+
+    # Database
+    database_path: /root/Documents/RTAB-Map/rtabmap_lidar.db
+
+    # Loop closure
+    RGBD/ProximityBySpace: "true"
+    RGBD/AngularUpdate: "0.05"
+    RGBD/LinearUpdate: "0.05"
+
+    # LiDAR grid map
+    Grid/Sensor: "0"          # 0=lidar, was 1=camera depth
+    Grid/RangeMax: "20.0"
+    Grid/RangeMin: "0.5"
+
+    # ICP odometry
+    Icp/PointToPlane: "true"
+    Icp/VoxelSize: "0.2"      # added - reduces pointcloud, faster processing
+    Icp/PointToPlaneK: "5"
+    Icp/MaxCorrespondenceDistance: "1.0"
+    Icp/Iterations: "20"      # added - fewer iterations = faster
+
+    # Registration
+    Reg/Strategy: "1"         # 1=ICP only, was 2=VisIcp (needs camera)
+    Reg/Force3DoF: "false"
+
+    # Optimizer
+    Optimizer/Strategy: "1"   # g2o
+    Optimizer/Iterations: "20"
+
+    # these were in docker-compose command, moved them here:
+    rgb_topic: /zed2i/zed_node/rgb/color/rect/image
+    camera_info_topic: /zed2i/zed_node/rgb/color/rect/camera_info
+    depth_topic: /zed2i/zed_node/depth/depth_registered
+
+    frame_id: chassis_link
+    publish_tf: true
+    odom_frame_id: odom
+    visual_odometry: true
+    icp_odometry: false
+    rtabmap_viz: false
+    database_path: /root/Documents/RTAB-Map/rtabmap_vslam.db
