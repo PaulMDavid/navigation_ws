@@ -45,7 +45,6 @@ services:
       - ./app_lidar_ouster_ros/data:/workspace/data
       - ./app_lidar_ouster_ros/config:/workspace/config
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
-      - ./app_lidar_ouster_ros/ouster-ros/config:/workspace/install/ouster_ros/share/ouster_ros/config
       - ./config/dds/cyclonedds.xml:/etc/cyclonedds.xml:ro
     environment:
       - ROS_DISTRO=humble
