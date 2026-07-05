@@ -1,0 +1,23 @@
+services:
+  app_zenoh_bridge:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        ROS_DISTRO: humble
+    container_name: app_zenoh_bridge_container
+    tty: true
+    stdin_open: true
+
+    # Host networking: bridge must see all DDS participants on the same interface
+    # and expose TCP 7447 for the ground station to connect on
+    network_mode: host
+    ipc: host
+    privileged: true
+
+    environment:
+      - ROS_DOMAIN_ID=0
+
+    volumes:
+      # Mount config so you can edit topic allowlist without rebuilding
+      - ./config/zenoh_bridge_robot.json5:/etc/zenoh/config.json5:ro

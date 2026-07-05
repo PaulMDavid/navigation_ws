@@ -1,0 +1,49 @@
+{
+  // Robot-side Zenoh router.
+  // Ground station connects to tcp/<ROBOT_IP>:7447 in client mode.
+  mode: "router",
+
+  listen: {
+    endpoints: ["tcp/0.0.0.0:7447"],
+  },
+
+  plugins: {
+    ros2dds: {
+      // Must match ROS_DOMAIN_ID on all robot containers
+      domain: 0,
+
+      allow: {
+        // ── Robot → Ground Station ────────────────────────────────────────────
+        // Topics the bridge reads from local DDS and forwards over Zenoh.
+        publishers: [
+          "^/map$",                          // global occupancy grid
+          "^/tf$",                           // dynamic transforms
+          "^/tf_static$",                    // static transforms
+          "^/odom$",                         // wheel/imu odometry
+          "^/amcl_pose$",                    // AMCL localisation estimate
+          "^/particle_cloud$",               // AMCL particle cloud
+          "^/plan$",                         // global nav plan path
+          "^/local_plan$",                   // local planner path
+          "^/local_costmap/costmap$",        // local costmap
+          "^/global_costmap/costmap$",       // global costmap
+          "^/robot_description$",            // URDF for RViz robot model
+          "^/cmd_vel$",                      // commanded velocity (viz only)
+        ],
+
+        // ── Ground Station → Robot ────────────────────────────────────────────
+        // Topics the bridge receives from Zenoh and injects into local DDS.
+        subscribers: [
+          "^/initialpose$",                  // 2D Pose Estimate button in RViz
+          "^/goal_pose$",                    // simple goal topic (fallback)
+        ],
+
+        // Nav2 action servers on the robot — ground station nav2 panel calls these
+        // directly as action clients so feedback/status/cancel all work end-to-end.
+        action_servers: [
+          "^/navigate_to_pose$",
+          "^/navigate_through_poses$",
+        ],
+      },
+    },
+  },
+}
