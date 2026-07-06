@@ -109,11 +109,11 @@ services:
     container_name: app_rtab_map_container
     tty: true
     stdin_open: true
-    depends_on:
-      app_zed2i_camera:
-        condition: service_healthy
-      app_lidar_ouster_ros:
-        condition: service_healthy
+    #depends_on:
+    #  app_zed2i_camera:
+    #    condition: service_healthy
+    #  app_lidar_ouster_ros:
+    #    condition: service_healthy
     volumes:
       - ./app_rtab_map:/workspace
       - ./app_rtab_map/data:/workspace/data
@@ -136,20 +136,20 @@ services:
     working_dir: /workspace
     command: >
       ros2 launch rtabmap_launch rtabmap.launch.py
-      rgb_topic:=/zed2i/zed_node/rgb/color/rect/image
-      camera_info_topic:=/zed2i/zed_node/rgb/color/rect/camera_info
-      depth_topic:=/zed2i/zed_node/depth/depth_registered
       scan_cloud_topic:=/ouster/points
       imu_topic:=/ouster/imu
       subscribe_imu:=true
       subscribe_scan_cloud:=true
       depth:=false
+      icp_odometry:=true
+      visual_odometry:=false
+      frame_id:=chassis_link
       qos:=2
       qos_imu:=2
       qos_scan:=2
       rtabmap_viz:=true
       database_path:=/root/Documents/RTAB-Map/rtabmap_lidar.db
-      args:="--delete_db_on_start --Icp/VoxelSize 0.2 --Icp/Iterations 20 --Icp/PointToPlaneK 5 --Icp/PointToPlane true --Icp/MaxCorrespondenceDistance 1.0 --Reg/Strategy 1 --Reg/Force3DoF false --Grid/Sensor 0 --Grid/RangeMax 20.0 --Grid/RangeMin 0.5 --RGBD/ProximityBySpace true --RGBD/AngularUpdate 0.05 --RGBD/LinearUpdate 0.05 --Optimizer/Strategy 1 --Optimizer/Iterations 20"
+      args:="--delete_db_on_start --Icp/VoxelSize 0.2 --Icp/Iterations 20 --Icp/PointToPlaneK 5 --Icp/PointToPlane true --Icp/MaxCorrespondenceDistance 1.0 --Reg/Strategy 1 --Reg/Force3DoF false --Grid/Sensor 0 --Grid/RangeMax 20.0 --Grid/RangeMin 0.65 --RGBD/ProximityBySpace true --RGBD/AngularUpdate 0.05 --RGBD/LinearUpdate 0.05 --Optimizer/Strategy 1 --Optimizer/Iterations 20"
     # To switch back to RGBD + lidar later, run:
     #   docker compose -f docker-compose.yaml -f docker-compose.rtabmap_camera.yaml up
     # Previous RGBD + lidar command:
@@ -315,6 +315,7 @@ services:
       - QT_X11_NO_MITSHM=1
       - XDG_RUNTIME_DIR=/tmp/runtime-root
       - ROS_DOMAIN_ID=0
+      - CYCLONEDDS_URI=file:///etc/cyclonedds.xml
     network_mode: host
     privileged: true
     working_dir: /workspace
