@@ -75,6 +75,24 @@ docker compose -f docker-compose.rtabmap_camera.yaml up
 | `src/app_robot_localization/robot_localization_erc26` | [PaulMDavid/robot_localization_erc26](https://github.com/PaulMDavid/robot_localization_erc26) |
 | `src/app_LIO_SAM/li_slam_ros2` | [rsasaki0109/li_slam_ros2](https://github.com/rsasaki0109/li_slam_ros2) |
 
+## Used as a submodule
+
+The TU Berlin rover monorepo mounts this repository as a submodule at
+`navigation_ws/navigation_stack`. A submodule records one fixed commit, so pushing here
+does **not** update that repo — someone has to bump the pin:
+
+```bash
+cd navigation_ws/navigation_stack
+git checkout main && git pull      # submodules check out detached; do this first
+cd ../..
+git add navigation_ws/navigation_stack
+git commit -m "chore: bump navigation_stack submodule"
+git push
+```
+
+Working from the monorepo instead? `git submodule update --init --recursive` after
+pulling, or the directory stays empty.
+
 ## Repository history
 
 This workspace was extracted from the TU Berlin rover team's internal GitLab monorepo
