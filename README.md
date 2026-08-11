@@ -7,6 +7,9 @@ Each navigation subsystem is an independent ROS 2 package with its own Dockerfil
 Compose service, so sensors, SLAM, and planning can be brought up in isolation while
 testing, or together on the rover.
 
+See [ARCHITECTURE.md](ARCHITECTURE.md) for the full topic graph, the transform tree, and
+how the SLAM back-end is swapped without touching anything downstream.
+
 ## Packages
 
 | Package | Role |
