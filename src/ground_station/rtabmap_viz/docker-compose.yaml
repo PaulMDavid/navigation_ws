@@ -1,0 +1,35 @@
+services:
+  rtab_map_visualization_container:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        ROS_DISTRO: humble
+
+    container_name: rtab_map_visualization_container
+
+    volumes:
+      - .:/workspace
+      - ./data:/workspace/data
+      - ./config:/workspace/config
+      - ./rtabmap-databases:/root/Documents/RTAB-Map
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+
+    environment:
+      ROS_DOMAIN_ID: 2
+      RMW_IMPLEMENTATION: rmw_cyclonedds_cpp
+      DEBIAN_FRONTEND: noninteractive
+      DISPLAY: ${DISPLAY}
+      QT_X11_NO_MITSHM: "1"
+      XDG_RUNTIME_DIR: /tmp/runtime-root
+
+    network_mode: host
+    privileged: true
+    working_dir: /workspace
+
+    command: >
+              ros2 run rtabmap_ros rtabmap
+              --ros-args
+              -p database_path:=/root/Documents/RTAB-Map/rtabmap.db
+              -p Mem/IncrementalMemory:=false
+              -p Mem/InitWMWithAllNodes:=true
