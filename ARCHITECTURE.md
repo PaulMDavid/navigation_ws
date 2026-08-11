@@ -135,6 +135,21 @@ What each package puts on the bus, and what it takes off it.
 | `app_LIO_SAM` | `/ouster/points`<br>`/ouster/imu` | `/map`, `/modified_map` (PointCloud2)<br>`/path`, `/current_pose`, `/odom`<br>TF `map → chassis_link` |
 | `app_zenoh_bridge` | — DDS bridge | carries the graph over unreliable WiFi |
 | `app_template` | — | scaffold for the next subsystem |
+| `ground_station/rtabmap_viz` | `/rtabmap/map` and the SLAM graph | — desktop viewer |
+| `ground_station/nav2_viz` | Nav2 displays over the network | — desktop viewer |
+
+## Ground station
+
+The two `src/ground_station/` packages run on the operator's desktop rather than the
+rover. They are ordinary subscribers — the rover neither knows nor cares that they exist,
+which is the same seam argument as everywhere else in this stack.
+
+Both use `network_mode: host` so CycloneDDS multicast discovery can reach the Jetson
+directly, and both forward X11 so RViz2 opens on your machine. The one thing that
+reliably goes wrong is `ROS_DOMAIN_ID`: if it does not match the rover side, RViz comes
+up empty and nothing reports an error. `nav2_viz/config/dds/cyclonedds.xml` carries a
+commented-out peer block for when multicast cannot cross the network — different
+subnets, WiFi client isolation, or a VPN.
 
 Drawn from the launch files, Compose services and parameter YAML in this repository.
 Where a topic is a driver default rather than an explicit remap — `/imu/data` — it is

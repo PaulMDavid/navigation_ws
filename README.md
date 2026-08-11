@@ -27,6 +27,19 @@ how the SLAM back-end is swapped without touching anything downstream.
 | `app_zenoh_bridge` | Zenoh bridge for links over unreliable WiFi |
 | `app_template` | Scaffold for new navigation subsystems |
 
+### Ground station
+
+These run on the operator's desktop, not the rover, and subscribe to the same topics
+over the network. Both forward X11 so RViz2 opens a window on your machine.
+
+| Package | Role |
+| --- | --- |
+| `ground_station/rtabmap_viz` | RTAB-Map map and graph viewer |
+| `ground_station/nav2_viz` | RViz2 with the Nav2 displays |
+
+They use host networking so CycloneDDS discovery can reach the Jetson directly. Set
+`ROS_DOMAIN_ID` to match the rover side or you will see an empty RViz and no error.
+
 ## Requirements
 
 - Docker and Docker Compose
