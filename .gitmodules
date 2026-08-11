@@ -1,0 +1,12 @@
+[submodule "src/app_lidar_ouster_ros"]
+	path = src/app_lidar_ouster_ros
+	url = https://github.com/PaulMDavid/ouster-ros-erc25.git
+[submodule "src/app_zed2i_camera/zed-ros2-wrapper"]
+	path = src/app_zed2i_camera/zed-ros2-wrapper
+	url = https://github.com/PaulMDavid/zed-ros2-wrapper-erc.git
+[submodule "src/app_robot_localization/robot_localization_erc26"]
+	path = src/app_robot_localization/robot_localization_erc26
+	url = https://github.com/PaulMDavid/robot_localization_erc26.git
+[submodule "src/app_LIO_SAM/li_slam_ros2"]
+	path = src/app_LIO_SAM/li_slam_ros2
+	url = https://github.com/rsasaki0109/li_slam_ros2.git
