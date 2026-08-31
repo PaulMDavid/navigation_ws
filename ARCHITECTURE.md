@@ -73,6 +73,13 @@ service. LIO-SAM cannot — it publishes its map as a `PointCloud2`, not an occu
 grid, so it needs a projection step before Nav2 can plan on it. That gap, not packaging,
 is why its Compose service is still commented out.
 
+`app_fast_livo2` is a different kind of experiment in the same slot: instead of swapping
+implementations behind the topic contract, it collapses `app_zed2i_camera` and
+`app_lidar_ouster_ros` into ZED and Ouster nodes composed in-process with FAST-LIVO2's
+container, so the camera→LiDAR handoff is zero-copy rather than crossing Docker services.
+See `app_fast_livo2/README.md` for what's actually composable there today versus what
+still runs as a separate process.
+
 ### Testing a subset
 
 Because each package is its own Compose service, bringing up part of the stack is the
@@ -133,6 +140,7 @@ What each package puts on the bus, and what it takes off it.
 | `app_aruco_detector` | `…/rect/image/compressed`<br>`…/rect/camera_info` | `aruco_detections` |
 | `app_robot_state_publisher` | `robot.urdf` | `/tf`<br>`/tf_static` |
 | `app_LIO_SAM` | `/ouster/points`<br>`/ouster/imu` | `/map`, `/modified_map` (PointCloud2)<br>`/path`, `/current_pose`, `/odom`<br>TF `map → chassis_link` |
+| `app_fast_livo2` | — hardware (ZED2i + Ouster, composed in-process) | FAST-LIVO2 odometry + map (extrinsics not yet calibrated — not wired into the runtime graph above) |
 | `app_zenoh_bridge` | — DDS bridge | carries the graph over unreliable WiFi |
 | `app_template` | — | scaffold for the next subsystem |
 | `ground_station/rtabmap_viz` | `/rtabmap/map` and the SLAM graph | — desktop viewer |

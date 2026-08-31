@@ -1,0 +1,9 @@
+# FAST-LIVO2 and vikit are bind-mounted at container start (see docker-compose.yaml),
+# never COPYed into the image — exclude them entirely so the build context doesn't ship
+# their full source + git history for nothing.
+FAST-LIVO2/
+rpg_vikit_ros2_fisheye/
+# Livox-SDK2 and livox_ros_driver2 ARE baked into the image (see Dockerfile), so only
+# their .git history is excluded, not the source itself.
+livox_ros_driver2/.git
+Livox-SDK2/.git

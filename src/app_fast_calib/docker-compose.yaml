@@ -1,0 +1,29 @@
+services:
+  ros:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fast_calib_ros_container
+    tty: true
+    stdin_open: true
+
+    volumes:
+      # FAST-Calib is a submodule (hku-mars/FAST-Calib) mounted straight into the catkin
+      # workspace. calib_data/ and output/ live inside it, so recordings and results persist
+      # on the host across container restarts.
+      - ./FAST-Calib:/workspace/catkin_ws/src/fast_calib
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+
+    environment:
+      - DISPLAY=${DISPLAY}
+      - QT_X11_NO_MITSHM=1
+
+    # Allows GUI tools (rviz) to open on the host display
+    network_mode: host
+    privileged: true
+
+    working_dir: /workspace/catkin_ws
+
+    # Container stays up so you can `docker compose exec` in and run things by hand once
+    # calib_data/ has scenes in it. See README.md.
+    command: tail -f /dev/null

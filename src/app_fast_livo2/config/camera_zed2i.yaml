@@ -1,0 +1,27 @@
+# Pinhole intrinsics for /zed2i/zed_node/rgb/color/rect/image, loaded into a
+# parameter_blackboard node that vikit_ros reads from (see ../launch/fast_livo2.launch.py
+# and upstream's mapping_ouster_ntu.launch.py, which this mirrors).
+#
+# d0-d3 are correctly 0 here and should stay that way: this is the *rectified* ZED
+# image topic, so the ZED SDK has already undistorted it — vikit should not re-apply
+# distortion coefficients on top of an already-rectified image.
+#
+# TODO: fx/fy/cx/cy/width/height depend on the ZED resolution the driver is launched
+# with (see docker-compose command in app_zed2i_camera). Once the camera is connected,
+# read the real values off the topic instead of guessing:
+#   ros2 topic echo /zed2i/zed_node/rgb/color/rect/camera_info --once
+
+/**:
+  ros__parameters:
+    cam_model: Pinhole
+    cam_width: 1280
+    cam_height: 720
+    scale: 1.0
+    cam_fx: 0.0
+    cam_fy: 0.0
+    cam_cx: 0.0
+    cam_cy: 0.0
+    cam_d0: 0.0
+    cam_d1: 0.0
+    cam_d2: 0.0
+    cam_d3: 0.0

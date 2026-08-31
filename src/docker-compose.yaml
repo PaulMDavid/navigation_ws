@@ -292,6 +292,80 @@ services:
       command: tail -f /dev/null
 
 
+  app_fast_calib:
+    build:
+      context: ./app_fast_calib
+      dockerfile: Dockerfile
+    container_name: fast_calib_ros_container
+    tty: true
+    stdin_open: true
+    volumes:
+      # ROS1 tool, standalone (no ROS 2 graph). FAST-Calib submodule mounted straight
+      # into the catkin workspace so calib_data/ and output/ persist on the host.
+      - ./app_fast_calib/FAST-Calib:/workspace/catkin_ws/src/fast_calib
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+    environment:
+      - DISPLAY=${DISPLAY}
+      - QT_X11_NO_MITSHM=1
+    network_mode: host
+    privileged: true
+    working_dir: /workspace/catkin_ws
+    # No sensible default: needs calib_data/ populated first. See app_fast_calib/README.md.
+    #   docker compose exec app_fast_calib bash
+    #   roslaunch fast_calib calib.launch
+    #   roslaunch fast_calib multi_calib.launch
+    command: tail -f /dev/null
+
+  app_fast_livo2:
+    build:
+      context: ./app_fast_livo2
+      dockerfile: Dockerfile
+    container_name: app_fast_livo2_container
+    runtime: nvidia
+    privileged: true
+    tty: true
+    stdin_open: true
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,video,utility
+      - ROS_DISTRO=humble
+      - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+      - ROS_DOMAIN_ID=0
+      - DISPLAY=${DISPLAY}
+      - QT_X11_NO_MITSHM=1
+      - XDG_RUNTIME_DIR=/tmp/runtime-root
+      - CYCLONEDDS_URI=file:///etc/cyclonedds.xml
+    devices:
+      - /dev/video0:/dev/video0
+      - /dev/bus/usb:/dev/bus/usb
+    network_mode: host
+    ipc: host
+    working_dir: /workspace
+    volumes:
+      # This package: launch + config only, mounted straight over what the image copied in.
+      - ./app_fast_livo2:/workspace/src/app_fast_livo2
+      # FAST-LIVO2 + its vikit fork, both edited/tuned locally (extrinsics, camera
+      # intrinsics) so they're mounted, not baked into the image.
+      - ./app_fast_livo2/FAST-LIVO2:/workspace/src/FAST-LIVO2
+      - ./app_fast_livo2/rpg_vikit_ros2_fisheye/vikit_common:/workspace/src/vikit_common
+      - ./app_fast_livo2/rpg_vikit_ros2_fisheye/vikit_ros:/workspace/src/vikit_ros
+      # ZED2i driver (source shared with app_zed2i_camera/app_rtab_zed2i)
+      - ./app_zed2i_camera/zed-ros2-wrapper:/workspace/src/zed-ros2-wrapper
+      - ./app_zed2i_camera:/workspace/src/zed2i_camera
+      - /mnt/ssd/zed2i_camcalib:/usr/local/zed/settings
+      - /mnt/ssd/zed2i_resources:/usr/local/zed/resources
+      # Ouster driver (source shared with app_lidar_ouster_ros)
+      - ./app_lidar_ouster_ros/ouster-ros:/workspace/src/ouster-ros
+      - ./app_lidar_ouster_ros/ouster-sensor-msgs:/workspace/src/ouster-sensor-msgs
+      - ./rosbags:/workspace/rosbags
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - ./config/dds/cyclonedds.xml:/etc/cyclonedds.xml:ro
+    # This service and app_zed2i_camera/app_lidar_ouster_ros/app_rtab_zed2i all drive the
+    # same physical camera + LiDAR — don't run this alongside them. It supersedes those
+    # three once the composable FAST-LIVO2 path is validated on hardware.
+    # command: ros2 launch app_fast_livo2 fast_livo2.launch.py
+    command: tail -f /dev/null
+
   app_nav2:
     build:
       context: ./app_nav2

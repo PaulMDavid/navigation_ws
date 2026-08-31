@@ -1,0 +1,23 @@
+# ouster_ros driver params for the composed os_driver node (ouster_ros::OusterDriver),
+# loaded as one composable node so LiDAR data reaches FAST-LIVO2/RViz without a
+# cross-process serialize/deserialize hop. Trimmed from upstream's driver_params.yaml —
+# see https://github.com/ouster-lidar/ouster-ros for the full set of optional keys.
+#
+# Defaults below match the sensor_hostname/lidar_mode already used for this sensor in
+# ../../docker-compose.yaml (app_lidar_ouster_ros service).
+
+ouster/os_driver:
+  ros__parameters:
+    sensor_hostname: "169.254.61.114"
+    lidar_mode: "1024x10"
+    timestamp_mode: ""
+    sensor_frame: os_sensor
+    lidar_frame: os_lidar
+    imu_frame: os_imu
+    point_cloud_frame: os_lidar
+    pub_static_tf: true
+    proc_mask: IMU|PCL
+    use_system_default_qos: false
+    point_type: original
+    organized: true
+    destagger: true

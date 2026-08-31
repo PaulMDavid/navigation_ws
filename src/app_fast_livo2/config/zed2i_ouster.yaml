@@ -1,0 +1,110 @@
+# FAST-LIVO2 mapping params for this rig: Ouster LiDAR + ZED2i (used as a plain pinhole
+# RGB camera, not via its own depth/VIO). Modeled on the upstream NTU_VIRAL.yaml example
+# (Ouster OS1 + pinhole camera), which is the closest match to our hardware — see
+# ../README.md for how this was picked.
+#
+# TODO before running on the real rig:
+#   - extrin_calib.Rcl / Pcl (camera <- LiDAR extrinsic): fill in from app_fast_calib's
+#     output, run on THIS rig's own board scans/photos. Do not reuse the sample-data
+#     numbers recorded in app_fast_calib/README.md — those were a pipeline smoke test on
+#     hku-mars's demo dataset, not a calibration of this hardware.
+#   - extrin_calib.extrinsic_T / extrinsic_R (IMU <- LiDAR extrinsic): Ouster's IMU and
+#     LiDAR are both internal to the sensor with a small fixed factory offset. Pull the
+#     real values from the sensor's metadata (imu_to_sensor_transform in the JSON dumped
+#     by ouster_ros, or `ros2 topic echo /ouster/metadata` once the sensor is connected).
+#     Left as identity below, which is wrong but harmless as a placeholder (near-zero
+#     translation in reality).
+#   - preprocess.scan_line: set to the actual channel count of the Ouster unit in use
+#     (e.g. 32 or 64 for an OS1/OS0) — currently a placeholder.
+
+/**:
+  ros__parameters:
+    common:
+      img_topic: "/zed2i/zed_node/rgb/color/rect/image"
+      lid_topic: "/ouster/points"
+      imu_topic: "/ouster/imu"
+      img_en: 1
+      lidar_en: 1
+      ros_driver_bug_fix: false
+
+    extrin_calib:
+      # IMU <- LiDAR (Ouster internal offset). TODO: replace with real sensor metadata.
+      extrinsic_T: [0.0, 0.0, 0.0]
+      extrinsic_R: [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]
+      # Camera <- LiDAR (Rcl/Pcl). TODO: replace with this rig's app_fast_calib output.
+      Rcl: [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]
+      Pcl: [0.0, 0.0, 0.0]
+
+    time_offset:
+      lidar_time_offset: 0.0
+      imu_time_offset: 0.0
+      img_time_offset: 0.0
+      exposure_time_init: 0.0
+
+    preprocess:
+      point_filter_num: 3
+      filter_size_surf: 0.1
+      lidar_type: 3 # Ouster (sensor_msgs/PointCloud2, not Livox CustomMsg)
+      scan_line: 32 # TODO: set to the real Ouster channel count
+      blind: 1.0
+
+    vio:
+      max_iterations: 5
+      outlier_threshold: 1000
+      img_point_cov: 100
+      patch_size: 8
+      patch_pyrimid_level: 3
+      normal_en: true
+      raycast_en: false
+      inverse_composition_en: false
+      exposure_estimate_en: true
+      inv_expo_cov: 0.1
+
+    imu:
+      imu_en: true
+      imu_int_frame: 30
+      acc_cov: 0.5
+      gyr_cov: 0.3
+      b_acc_cov: 0.0001
+      b_gyr_cov: 0.0001
+
+    lio:
+      max_iterations: 5
+      dept_err: 0.02
+      beam_err: 0.01
+      min_eigen_value: 0.0025
+      voxel_size: 0.5
+      max_layer: 2
+      max_points_num: 50
+      layer_init_num: [5, 5, 5, 5, 5]
+
+    local_map:
+      map_sliding_en: false
+      half_map_size: 100
+      sliding_thresh: 8.0
+
+    uav:
+      imu_rate_odom: false
+      gravity_align_en: false
+
+    publish:
+      dense_map_en: true
+      pub_effect_point_en: false
+      pub_plane_en: false
+      pub_scan_num: 1
+      blind_rgb_points: 0.0
+
+    evo:
+      seq_name: "rover_01"
+      pose_output_en: false
+
+    pcd_save:
+      pcd_save_en: false
+      type: 0
+      colmap_output_en: false
+      filter_size_pcd: 0.15
+      interval: -1
+
+    image_save:
+      img_save_en: false
+      interval: 1
