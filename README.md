@@ -110,13 +110,11 @@ pulling, or the directory stays empty.
 
 This workspace was extracted from the TU Berlin rover team's internal GitLab monorepo
 (`git.tu-berlin.de/rover/erc25`), preserving the original commits, authors, and dates
-from November 2025 onward. Only the navigation packages were carried over; other rover
-subsystems remain in the internal repository.
+from November 2025 onward.
 
 Paths changed during extraction: what was `navigation_ws/src/<pkg>` in the monorepo is
 `src/<pkg>` here.
 
 ## Contributors
 
-See [CONTRIBUTORS.md](CONTRIBUTORS.md). This stack is the work of several people on the
-TU Berlin rover team, not one person.
+See [CONTRIBUTORS.md](CONTRIBUTORS.md). 
