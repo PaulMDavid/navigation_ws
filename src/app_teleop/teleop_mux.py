@@ -20,24 +20,21 @@ rover within `teleop_timeout`. /cmd_vel is published at `rate` in every mode, an
 robot-side speed limits clamp everything an operator sends.
 /teleop/state reports the mode the robot is actually in, as JSON.
 
-Phone domain: with TELEOP_PHONE_DOMAIN set, the phone's topics (and a copy of
-/teleop/state) live in that DDS domain instead, where foxglove_bridge runs. This node
-is the only thing in both domains, so a WebSocket client can reach nothing else:
-foxglove_bridge 3.6.0 ignores its client_topic_whitelist and would otherwise let any
-client publish any topic, /cmd_vel included (utils/teleop_link/README.md).
+The phone's topics, and a copy of /teleop/state, live in the phone DDS domain
+(phone_domain.py).
 """
 import json
 import math
 import os
-import threading
 
 import rclpy
 from geometry_msgs.msg import Twist
 from rcl_interfaces.msg import SetParametersResult
-from rclpy.executors import SingleThreadedExecutor
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy, qos_profile_sensor_data
 from std_msgs.msg import String
+
+from phone_domain import phone_node
 
 MODES = ('autonomous', 'manual', 'stop')
 SOURCES = ('ground', 'phone')
@@ -48,7 +45,7 @@ def clamp(v, limit):
 
 
 class TeleopMux(Node):
-    def __init__(self, phone_node=None):
+    def __init__(self, phone):
         super().__init__('teleop_mux')
         self.declare_parameter('source', os.environ.get('TELEOP_SOURCE', 'ground'))
         self.declare_parameter('initial_mode', 'autonomous')
@@ -71,9 +68,8 @@ class TeleopMux(Node):
 
         self.pub = self.create_publisher(Twist, self.get_parameter('out_topic').value,
                                          QoSProfile(depth=10, reliability=ReliabilityPolicy.RELIABLE))
-        node_for = {'ground': self, 'phone': phone_node or self}
-        self.state_pubs = [n.create_publisher(String, '/teleop/state', 10)
-                           for n in {self, node_for['phone']}]
+        node_for = {'ground': self, 'phone': phone}
+        self.state_pubs = [n.create_publisher(String, '/teleop/state', 10) for n in (self, phone)]
         # best effort matches both reliable and best-effort publishers (bridges differ)
         self.create_subscription(Twist, self.get_parameter('nav_topic').value,
                                  self.on_nav, qos_profile_sensor_data)
@@ -86,8 +82,8 @@ class TeleopMux(Node):
 
         self.create_timer(1.0 / self.get_parameter('rate').value, self.tick)
         self.create_timer(0.2, self.publish_state)
-        phone_domain = phone_node.context.get_domain_id() if phone_node else 'same'
-        self.get_logger().info(f'source={self.source} mode={self.mode} phone_domain={phone_domain} '
+        self.get_logger().info(f'source={self.source} mode={self.mode} '
+                               f'phone_domain={phone.context.get_domain_id()} '
                                f'limits={self.limits()} timeout={self.timeout("teleop")}s')
 
     def limits(self):
@@ -169,16 +165,7 @@ class TeleopMux(Node):
 
 def main():
     rclpy.init()
-    phone_node = None
-    phone_domain = os.environ.get('TELEOP_PHONE_DOMAIN')
-    if phone_domain:
-        ctx = rclpy.Context()
-        rclpy.init(context=ctx, domain_id=int(phone_domain))
-        phone_node = Node('teleop_mux_phone', context=ctx)
-        executor = SingleThreadedExecutor(context=ctx)
-        executor.add_node(phone_node)
-        threading.Thread(target=executor.spin, daemon=True).start()
-    rclpy.spin(TeleopMux(phone_node))
+    rclpy.spin(TeleopMux(phone_node('teleop_mux_phone')))
 
 
 if __name__ == '__main__':

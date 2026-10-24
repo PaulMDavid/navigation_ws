@@ -25,7 +25,7 @@ echo "== ground path (Zenoh) =="
 docker compose --profile probe run --rm probe python3 probe.py ground & probe=$!
 for _ in $(seq 300); do [[ -e results/ground_ready ]] && break; sleep 0.1; done
 docker compose kill zenoh_ground >/dev/null 2>&1
-date +%s.%N > results/ground_killed
+date +%s.%N > results/ground_killed.tmp && mv results/ground_killed.tmp results/ground_killed
 wait $probe || status=1
 
 exit $status

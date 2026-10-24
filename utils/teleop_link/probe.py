@@ -362,7 +362,10 @@ def main():
     os.makedirs(RESULTS, exist_ok=True)
     with open(f'{RESULTS}/{phase}.json', 'w') as f:
         json.dump(results, f, indent=1)
-    sys.exit(0 if all(c['ok'] for c in results['checks']) else 1)
+    # os._exit: the spin threads of two rclpy contexts abort a normal interpreter
+    # teardown, which would turn a pass into a non-zero exit
+    sys.stdout.flush()
+    os._exit(0 if all(c['ok'] for c in results['checks']) else 1)
 
 
 if __name__ == '__main__':

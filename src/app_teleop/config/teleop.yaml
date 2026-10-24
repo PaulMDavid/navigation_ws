@@ -16,7 +16,9 @@ teleop_mux:
 # teleop_camera: the phone app's camera page
 teleop_camera:
   ros__parameters:
-    input_topic: /zed2i/zed_node/rgb/color/rect/image/compressed  # check on orintwo
+    # first one that exists is used: the ZED wrapper's two namings
+    input_topics: [/zed2i/zed_node/rgb/color/rect/image/compressed,
+                   /zed2i/zed_node/rgb/image_rect_color/compressed]
     max_rate: 10.0             # Hz to the phone
     max_width: 960             # px; wider frames are downscaled and re-encoded
     jpeg_quality: 60

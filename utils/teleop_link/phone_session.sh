@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Hands-on phone test with the laptop as orintwo: teleop_mux + foxglove_bridge + the
-# phone page on this machine, recording everything to results/session.jsonl. The camera
+# APK download on this machine, recording everything to results/session.jsonl. The camera
 # page gets the OV9281 (on OV9281_DEVICE, default /dev/video2) in place of the ZED.
 #   ./phone_session.sh start   then open the printed URL on the phone
 #   ./phone_session.sh stop    stops, prints the report (record.py report)

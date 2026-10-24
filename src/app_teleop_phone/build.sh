@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build the Android app (flutter/) in a container and put the APK next to the web page,
+# Build the Android app (flutter/) in a container and put the APK in www/,
 # so orintwo serves it at http://10.42.0.1:8080/rover-teleop.apk for the phone to install.
 # Memory-capped: the laptop has 15 GB (CLAUDE.md). The Gradle/pub caches and the debug
 # signing key live in the navws_flutter_cache volume; keeping that key is what lets a

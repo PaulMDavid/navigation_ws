@@ -50,7 +50,7 @@ services:
       - ./cyclonedds_lo.xml:/etc/cyclonedds.xml:ro
       - ../../src/app_teleop:/workspace/app_teleop:ro
     # the laptop has no ZED: the OV9281 stands in (service ov9281 below)
-    command: bash -c 'source /opt/ros/humble/setup.bash && exec python3 app_teleop/teleop_camera.py --ros-args --params-file app_teleop/config/teleop.yaml -p teleop_camera:input_topic:=$${CAMERA_TOPIC:-/ov9281/image_raw/compressed}'
+    command: bash -c 'source /opt/ros/humble/setup.bash && exec python3 app_teleop/teleop_camera.py --ros-args --params-file app_teleop/config/teleop.yaml -p "teleop_camera:input_topics:=[$${CAMERA_TOPIC:-/ov9281/image_raw/compressed}]"'
 
   # Stand-in for the ZED: the Arducam OV9281 driver (~/taojue/app_ov9281_driver image),
   # run as-is on /dev/video2. Publishes /ov9281/image_raw/compressed, 1280x800 mono.

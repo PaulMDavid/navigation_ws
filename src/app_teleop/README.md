@@ -53,9 +53,9 @@ container running, Nav2's commands reach nothing; the bringup's rover stage chec
 `teleop_camera.py` (compose service `app_teleop_camera`, phone source only) relays a
 compressed image into the phone domain as `/teleop/camera/compressed` for the app's
 camera page.
-- Input: `input_topic` in `config/teleop.yaml`, the ZED 2i's
-  `/zed2i/zed_node/rgb/color/rect/image/compressed`. Check that name on orintwo: the
-  nav_master camera stage still checks the older `rgb/image_rect_color` naming.
+- Input: the first of `input_topics` (`config/teleop.yaml`) that exists: the ZED 2i's
+  `/zed2i/zed_node/rgb/color/rect/image/compressed`, or the older wrapper naming
+  `…/rgb/image_rect_color/compressed`. The log says which one it picked.
 - Capped at `max_rate` (10 Hz). Frames wider than `max_width` (960 px) are re-encoded at
   `jpeg_quality` (60). Measured: 960x600, about 22 KiB per frame, ~1.8 Mbit/s.
 - Lazy: it subscribes to the camera only while the camera page is open.
@@ -104,6 +104,29 @@ Live, without restarting anything: `ros2 param set /teleop_mux source phone`.
   screen*. See `app_teleop_phone/README.md`.
 - **Ground PC:** the Teleop panel in `groundstation_navigation`'s bringup GUI (W/S/A/D,
   space = stop). Over eduroam set `GS_LINK=zenoh` and `ROBOT_IP` in its `.env`.
+
+## First run on orintwo
+
+From the laptop:
+
+```bash
+src/app_teleop_phone/build.sh     # APK into www/, which the sync copies
+scripts/sync_to_robot.sh
+```
+
+On orintwo (`ssh` over the wired link, 192.168.1.210), in `/mnt/ssd/pdavid/navigation_ws`:
+
+```bash
+sudo scripts/robot_setup/apply.sh          # once: /etc/navws/teleop.env + boot unit
+sudoedit /etc/navws/teleop.env             # set AP_PASSWORD (8+ characters)
+sudo scripts/teleop_source.sh phone        # AP up, teleop + bridge + camera containers
+scripts/teleop_source.sh status
+```
+
+Then the ZED: bring it up as usual (bringup GUI or the camera stage), join
+`orintwo-teleop` on the phone, install from `http://10.42.0.1:8080`, open the app.
+`docker logs app_teleop_camera_container` shows which camera topic it uses once the
+camera page is open. `sudo scripts/teleop_source.sh ground` goes back to eduroam.
 
 ## Tests
 

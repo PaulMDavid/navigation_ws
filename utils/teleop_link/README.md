@@ -30,6 +30,14 @@ what a Wi-Fi drop looks like to the robot.
 
 ## Last results
 
+**2026-10-24, `CAMERA=1 ./run.sh` after the cleanup: 26/26 PASS** (phone 13, camera 6,
+ground 7). Deadman 0.418–0.446 s, Zenoh link kill 0.409 s, camera 10.0 Hz at 960x600.
+- Found in this run: the ground-side Zenoh client exited when the robot's router wasn't
+  up yet at its start, and never came back. It now retries forever
+  (`zenoh_bridge_ground.json5`: `connect.exit_on_failure: false`, `timeout_ms: -1`).
+  Tested with the ground bridge started first, then the robot's, and with a router
+  restart.
+
 **2026-10-24, `run.sh`: 20/20 PASS.**
 - Phone path:
   - `/cmd_vel` at 20.0 Hz with no input.
@@ -48,12 +56,7 @@ what a Wi-Fi drop looks like to the robot.
   24-byte GIDs and creates no routes.
 
 **2026-10-24, phone sessions (Pixel, home Wi-Fi, laptop as orintwo).**
-- Web page, 121 s: modes set from the phone, joystick drove at 10.0 Hz, peak 0.49 m/s /
-  1.00 rad/s, STOP worked. The steps for leaving the app and airplane mode left no gap
-  in the stream (largest gap 0.44 s), so the browser kept sending or the steps didn't
-  register. Untested.
-- Flutter app, 681 s: connected after setting the
-  address, manual driving at 10.0 Hz, peak 0.50 m/s / 1.00 rad/s. No stop caused by the
+- Flutter app, 681 s: connected after setting the address, manual driving at 10.0 Hz, peak 0.50 m/s / 1.00 rad/s. No stop caused by the
   phone going quiet was recorded (largest gap 1.10 s, while not driving).
   **Leaving the app or losing Wi-Fi mid-drive is still to be tested** (also not
   exercised in the camera session: every stop there was the phone sending zeros).

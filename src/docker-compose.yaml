@@ -557,7 +557,7 @@ services:
     ipc: host
     command: ros2 run foxglove_bridge foxglove_bridge --ros-args --params-file /config/foxglove_bridge.yaml
 
-  # Serves the phone app (app_teleop_phone/www) on port 8080: http://10.42.0.1:8080
+  # Serves the app download (app_teleop_phone/www) on port 8080: http://10.42.0.1:8080
   app_teleop_phone:
     build:
       context: ./app_teleop
