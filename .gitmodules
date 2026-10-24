@@ -25,3 +25,6 @@
 [submodule "src/app_fast_livo2/Livox-SDK2"]
 	path = src/app_fast_livo2/Livox-SDK2
 	url = https://github.com/Livox-SDK/Livox-SDK2.git
+[submodule "src/groundstation_navigation"]
+	path = src/groundstation_navigation
+	url = https://github.com/PaulMDavid/groundstation_navigation.git
