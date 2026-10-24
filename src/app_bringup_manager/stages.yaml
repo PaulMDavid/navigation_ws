@@ -10,6 +10,7 @@
 #   tf            transform parent -> child exists; max_age in s unless static
 #   lifecycle     a nav2 lifecycle manager's is_active service returns true
 #   subscribers   topic has at least `min` subscribers
+#   node          node (full name, e.g. /nav_master_container) is in the graph
 #
 # `pre` checks run before the stage's containers start and fail it immediately.
 # `required: false` stages only warn; they never block or fail the bringup.

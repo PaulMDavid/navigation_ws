@@ -1,0 +1,33 @@
+# rtabmap_slam::CoreWrapper, mapping only (the "rtabmap" map backend). Odometry and
+# odom -> chassis_link come from the odometry slot; rtabmap adds map -> odom and the
+# occupancy grid /rtabmap/map. Remap scan_cloud -> /ouster/points, odom -> the slot's
+# odometry topic. Grid/ICP values are app_rtab_map's compose args.
+/**:
+  ros__parameters:
+    frame_id: chassis_link
+    subscribe_depth: false
+    subscribe_rgb: false
+    subscribe_scan_cloud: true
+    # the slot's odometry isn't stamped exactly like the cloud it came from
+    approx_sync: true
+    sync_queue_size: 30
+    qos_scan: 2
+    database_path: /root/Documents/RTAB-Map/rtabmap_lidar.db
+    Mem/IncrementalMemory: 'true'
+    Kp/MaxFeatures: '-1'
+    RGBD/ProximityPathMaxNeighbors: '1'
+    RGBD/ProximityBySpace: 'true'
+    RGBD/AngularUpdate: '0.05'
+    RGBD/LinearUpdate: '0.05'
+    Reg/Strategy: '1'
+    Reg/Force3DoF: 'false'
+    Icp/VoxelSize: '0.2'
+    Icp/Iterations: '20'
+    Icp/PointToPlaneK: '5'
+    Icp/PointToPlane: 'true'
+    Icp/MaxCorrespondenceDistance: '1.0'
+    Grid/Sensor: '0'
+    Grid/RangeMax: '20.0'
+    Grid/RangeMin: '0.65'
+    Optimizer/Strategy: '1'
+    Optimizer/Iterations: '20'

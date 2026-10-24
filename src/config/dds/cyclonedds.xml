@@ -4,6 +4,11 @@
       <AllowMulticast>spdp</AllowMulticast>
       <NetworkInterfaceAddress>eno1</NetworkInterfaceAddress>
     </General>
+    <Internal>
+      <!-- ask for 10 MB (scripts/robot_setup raises the kernel limit); with no
+           min, a machine still at the 208 KB default just gets less, no error -->
+      <SocketReceiveBufferSize max="10MB"/>
+    </Internal>
     <Discovery>
       <Peers>
         <Peer Address="192.168.1.100"/>

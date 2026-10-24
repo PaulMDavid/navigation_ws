@@ -1,0 +1,9 @@
+# Identity map -> odom. graph_based_slam publishes no TF (its loop-closure corrections
+# only reach /lio/modified_map and /lio/modified_path), so with li_slam as the map
+# backend something must close the tree for Nav2. Drift is not corrected in TF.
+/**:
+  ros__parameters:
+    frame_id: map
+    child_frame_id: odom
+    translation: {x: 0.0, y: 0.0, z: 0.0}
+    rotation: {x: 0.0, y: 0.0, z: 0.0, w: 1.0}

@@ -1,0 +1,30 @@
+/**:
+  ros__parameters:
+    # li_slam treats its robot frame as the lidar itself, and image_projection stamps
+    # deskewed clouds "base_link", so base_link here is the lidar pose (= os_sensor).
+    # base_link -> chassis_link comes from lio_base_to_chassis.yaml.
+    global_frame_id: odom    # TF odom -> base_link; map -> odom is not li_slam's
+    odom_frame_id: odom
+    robot_frame_id: base_link
+    registration_method: NDT
+    ndt_resolution: 2.0
+    ndt_num_threads: 4       # 0 = every core; leave room for the rest of the stack
+    trans_for_mapupdate: 1.5
+    vg_size_for_input: 0.2
+    vg_size_for_map: 0.2
+    use_min_max_filter: false
+    scan_min_range: 0.1      # image_projection already drops points under 1 m
+    scan_max_range: 60.0
+    map_publish_period: 15.0
+    num_targeted_cloud: 20
+    set_initial_pose: true
+    initial_pose_x: 0.0
+    initial_pose_y: 0.0
+    initial_pose_z: 0.0
+    initial_pose_qx: 0.0
+    initial_pose_qy: 0.0
+    initial_pose_qz: 0.0
+    initial_pose_qw: 1.0
+    use_imu: true
+    use_odom: false
+    debug_flag: false

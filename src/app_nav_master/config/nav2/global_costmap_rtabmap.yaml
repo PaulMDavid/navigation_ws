@@ -1,0 +1,43 @@
+# Global costmap for the rtabmap backend: rtabmap's occupancy grid plus live lidar.
+global_costmap:
+  global_costmap:
+    ros__parameters:
+      use_sim_time: false
+      transform_tolerance: 1.0
+      update_frequency: 1.0
+      publish_frequency: 1.0
+      global_frame: map
+      robot_base_frame: chassis_link
+      robot_radius: 0.5
+      resolution: 0.05
+      rolling_window: false
+      width: 100
+      height: 100
+      origin_x: -50.0
+      origin_y: -50.0
+      track_unknown_space: true
+      plugins: ["static_layer", "obstacle_layer", "inflation_layer"]
+      static_layer:
+        plugin: "nav2_costmap_2d::StaticLayer"
+        map_subscribe_transient_local: true
+        map_topic: /rtabmap/map
+      obstacle_layer:
+        plugin: "nav2_costmap_2d::ObstacleLayer"
+        enabled: true
+        observation_sources: pointcloud
+        pointcloud:
+          topic: /ouster/points
+          max_obstacle_height: 5.0
+          min_obstacle_height: 0.05
+          obstacle_max_range: 6.0
+          obstacle_min_range: 2.0
+          raytrace_max_range: 6.5
+          raytrace_min_range: 0.0
+          clearing: true
+          marking: true
+          data_type: "PointCloud2"
+      inflation_layer:
+        plugin: "nav2_costmap_2d::InflationLayer"
+        cost_scaling_factor: 3.0
+        inflation_radius: 0.7
+      always_send_full_costmap: true

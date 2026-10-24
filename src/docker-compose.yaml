@@ -1,3 +1,7 @@
+# app_nav_master (all nodes as components in one process) lives in its own fragment
+include:
+  - app_nav_master/docker-compose.yaml
+
 services:
   app_aruco_detector:
     build:
@@ -473,6 +477,8 @@ services:
       - CYCLONEDDS_URI=file:///etc/cyclonedds.xml
       - PYTHONUNBUFFERED=1
       - DISPLAY=${DISPLAY:-}
+      # stages.yaml = separate containers; stages_master.yaml = app_nav_master components
+      - BRINGUP_STAGES=${BRINGUP_STAGES:-stages.yaml}
     network_mode: host
     ipc: host
     pid: host

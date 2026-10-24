@@ -1,0 +1,27 @@
+# Shared by image_projection and imu_preintegration (both read li_slam's ParamServer).
+# Ouster OS-0-128, 1024x10, clouds published in os_sensor (ouster point_cloud_frame).
+/**:
+  ros__parameters:
+    pointCloudTopic: /ouster/points
+    imuTopic: /ouster/imu
+    odomTopic: preintegrated_odom   # scanmatcher subscribes to this name, keep it
+    sensor: ouster
+    N_SCAN: 128
+    Horizon_SCAN: 1024
+
+    # Ouster internal IMU; upstream defaults, not yet tuned for this unit
+    imuAccNoise: 3.9939570888238808e-03
+    imuGyrNoise: 1.5636343949698187e-03
+    imuAccBiasN: 6.4356659353532566e-05
+    imuGyrBiasN: 3.5640318696367613e-05
+    imuGravity: 9.81
+
+    # IMU -> lidar. os_imu has the same axes as os_sensor, so rotation is identity;
+    # translation is the IMU's position in os_sensor (sensor metadata, metres).
+    extrinsicTrans: [0.006253, -0.011775, 0.007645]
+    extrinsicRot: [1.0, 0.0, 0.0,
+                   0.0, 1.0, 0.0,
+                   0.0, 0.0, 1.0]
+    extrinsicRPY: [1.0, 0.0, 0.0,
+                   0.0, 1.0, 0.0,
+                   0.0, 0.0, 1.0]
