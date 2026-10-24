@@ -1,0 +1,32 @@
+# SAPOS Berlin NTRIP credentials, Phase 2.
+#
+# Copy this file to ntrip.yaml and fill in the credentials that arrive by email
+# after registering at https://service.berlin.de/dienstleistung/330325/
+#
+# ntrip.yaml is gitignored: never commit real credentials.
+# The exact host and mountpoint come with the registration email; the values
+# below are placeholders and WILL need replacing.
+
+/ntrip_client:
+  ros__parameters:
+    host: "HOST_FROM_SAPOS_EMAIL"
+    port: 2101
+    mountpoint: "MOUNTPOINT_FROM_SAPOS_EMAIL"
+    username: "YOUR_SAPOS_USERNAME"
+    password: "YOUR_SAPOS_PASSWORD"
+
+    # SAPOS HEPS is a network/VRS service: it generates corrections for your
+    # specific location, so it needs to know roughly where you are. The client
+    # does this by sending your NMEA GGA sentence back up to the caster.
+    ntrip_version: "None"
+    authenticate: true
+    ssl: false
+
+    # Topic the receiver's position is read from, to build that GGA uplink.
+    rtcm_frame_id: "gnss_link"
+
+    # How often to send position upstream. 10 s is the usual compromise.
+    nmea_max_length: 128
+    nmea_min_length: 3
+    reconnect_attempt_max: 10
+    reconnect_attempt_wait_seconds: 5

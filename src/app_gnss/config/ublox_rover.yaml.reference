@@ -1,0 +1,52 @@
+# ZED-F9P receiver configuration, single-receiver rover mode (Phase 1).
+# Parameter names are u-blox CFG-* configuration keys, set over USB by ublox_dgnss.
+#
+# Phase 2 (NTRIP corrections) needs no change here: RTCM arriving on /rtcm is
+# forwarded to the receiver and the fix type changes from 3D to RTK by itself.
+
+/ublox_dgnss:
+  ros__parameters:
+    # Which receiver to claim on the USB bus.
+    # 1546:01a9 is u-blox ZED-F9P. Leave serial empty while only one is connected;
+    # once the second F9P arrives, set the serial string to pin each node to one device.
+    DEVICE_FAMILY: "F9P"
+    FRAME_ID: "gnss_link"
+
+    # Output rate. 1000 ms = 1 Hz. The F9P can do 8 Hz on RTK, but start slow:
+    # a stable 1 Hz fix is easier to debug than a fast one that drops out.
+    CFG_RATE_MEAS: 1000
+    CFG_RATE_NAV: 1
+
+    # Enable the UBX messages we actually consume.
+    CFG_MSGOUT_UBX_NAV_PVT_USB: 1          # position, velocity, time, fix type
+    CFG_MSGOUT_UBX_NAV_HPPOSLLH_USB: 1     # high-precision lat/lon/height
+    CFG_MSGOUT_UBX_NAV_STATUS_USB: 1
+    CFG_MSGOUT_UBX_NAV_COV_USB: 1          # covariance, needed by the EKF later
+    CFG_MSGOUT_UBX_NAV_SAT_USB: 0          # per-satellite detail, verbose; on only when debugging
+
+    # NMEA off over USB: we read UBX binary, NMEA would just add noise.
+    # (Turn it back on temporarily if you want to eyeball sentences again.)
+    CFG_USBOUTPROT_NMEA: false
+    CFG_USBOUTPROT_UBX: true
+
+    # Accept RTCM corrections on the USB input, this is what makes RTK work in Phase 2.
+    CFG_USBINPROT_RTCM3X: true
+
+    # Constellations. Galileo showed 0 satellites in the first indoor test,
+    # explicitly enabling it here rules out configuration as the cause.
+    CFG_SIGNAL_GPS_ENA: true
+    CFG_SIGNAL_GAL_ENA: true
+    CFG_SIGNAL_BDS_ENA: true
+    CFG_SIGNAL_GLO_ENA: true
+
+# ---------------------------------------------------------------------------
+# NOTE: this file is NOT loaded at runtime.
+#
+# Parameters are passed inline in launch/app_gnss.launch.py instead, because
+# ublox_dgnss rejects configuration keys it has not declared, and an unknown
+# key prevents the node from starting at all. The set in the launch file is the
+# one upstream is known to accept.
+#
+# Keep this file as a reference for keys worth trying later, one at a time,
+# confirming the node still starts after each addition.
+# ---------------------------------------------------------------------------
