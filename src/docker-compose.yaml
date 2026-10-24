@@ -394,3 +394,34 @@ services:
     privileged: true
     working_dir: /workspace
     command: tail -f /dev/null
+  app_gnss:
+    build:
+      context: ./app_gnss
+      dockerfile: Dockerfile
+      args:
+        ROS_DISTRO: humble
+    container_name: app_gnss_container
+    tty: true
+    stdin_open: true
+    devices:
+      - /dev/bus/usb:/dev/bus/usb
+    volumes:
+      - ./app_gnss:/workspace/src/app_gnss
+      - ./app_gnss/data:/workspace/data
+      - ./app_gnss/config:/workspace/config
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - ./config/dds/cyclonedds.xml:/etc/cyclonedds.xml:ro
+    environment:
+      - ROS_DISTRO=humble
+      - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+      - DEBIAN_FRONTEND=noninteractive
+      - DISPLAY=${DISPLAY}
+      - QT_X11_NO_MITSHM=1
+      - XDG_RUNTIME_DIR=/tmp/runtime-root
+      - ROS_DOMAIN_ID=0
+      - CYCLONEDDS_URI=file:///etc/cyclonedds.xml
+    network_mode: host
+    ipc: host
+    privileged: true
+    working_dir: /workspace
+    command: ros2 launch app_gnss app_gnss.launch.py foxglove:=false

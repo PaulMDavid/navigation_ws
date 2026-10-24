@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>app_gnss</name>
+  <version>0.1.0</version>
+  <description>
+    BEARS Rover GNSS/RTK package. u-blox ZED-F9P receiver via ublox_dgnss,
+    NTRIP corrections from SAPOS Berlin, feeding robot_localization.
+  </description>
+  <maintainer email="taha.mousa2023@gmail.com">Taha Mohammed</maintainer>
+  <license>MIT</license>
+
+  <depend>ublox_dgnss</depend>
+  <depend>ublox_ubx_msgs</depend>
+  <depend>ntrip_client</depend>
+  <depend>sensor_msgs</depend>
+  <depend>tf2_ros</depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>
