@@ -24,7 +24,10 @@ how the SLAM back-end is swapped without touching anything downstream.
 | `app_nav2` | Nav2 planning and control — consumes map + odom from SLAM |
 | `app_robot_state_publisher` | Rover URDF, TF tree, joint states |
 | `app_aruco_detector` | ArUco marker detection with pose and distance estimation |
-| `app_zenoh_bridge` | Zenoh bridge for links over unreliable WiFi |
+| `app_zenoh_bridge` | Zenoh bridge for links over unreliable WiFi (ground station ↔ robot) |
+| `app_teleop` | Decides what reaches `/cmd_vel`: Nav2, an operator (ground PC or phone), or nothing; deadman |
+| `app_foxglove_bridge` | The phone's link (Foxglove WebSocket), isolated in its own DDS domain |
+| `app_teleop_phone` | Android teleop app (Flutter, submodule) and its web fallback |
 | `app_template` | Scaffold for new navigation subsystems |
 
 ### Ground station

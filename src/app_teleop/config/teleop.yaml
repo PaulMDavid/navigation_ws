@@ -1,0 +1,14 @@
+# teleop_mux parameters. `source` comes from TELEOP_SOURCE (scripts/teleop_source.sh);
+# set it live with:  ros2 param set /teleop_mux source phone
+teleop_mux:
+  ros__parameters:
+    initial_mode: autonomous   # keeps today's behaviour: Nav2 drives after boot
+    rate: 20.0                 # Hz, /cmd_vel is published at this rate in every mode
+    teleop_timeout: 0.5        # s without an operator command -> zero (deadman)
+    nav_timeout: 0.5           # s without a Nav2 command -> zero
+    # Operator speed limits; no client can exceed them. Placeholders until checked
+    # against morpheus_control's own limits on the rover.
+    max_linear: 0.5            # m/s
+    max_angular: 1.0           # rad/s
+    nav_topic: /cmd_vel_auto   # Nav2's velocity smoother output
+    out_topic: /cmd_vel        # morpheus_control on the rover subscribes here

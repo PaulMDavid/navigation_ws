@@ -67,3 +67,4 @@ stages:
     checks:
       - {type: ping, host: 192.168.1.230}
       - {type: subscribers, topic: /cmd_vel, min: 1, hint: "morpheus_control on the rover not running"}
+      - {type: subscribers, topic: /cmd_vel_auto, min: 1, hint: "app_teleop not running: Nav2's commands reach nothing"}

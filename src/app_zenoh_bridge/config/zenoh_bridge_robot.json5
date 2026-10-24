@@ -1,6 +1,8 @@
 {
   // Robot-side Zenoh router.
-  // Ground station connects to tcp/<ROBOT_IP>:7447 in client mode.
+  // Ground station connects to tcp/<ROBOT_IP>:7447 in client mode
+  // (groundstation_navigation/config/zenoh_bridge_ground.json5).
+  // DDS domain: $ROS_DOMAIN_ID (0 on the robot).
   mode: "router",
 
   listen: {
@@ -9,9 +11,6 @@
 
   plugins: {
     ros2dds: {
-      // Must match ROS_DOMAIN_ID on all robot containers
-      domain: 0,
-
       allow: {
         // ── Robot → Ground Station ────────────────────────────────────────────
         // Topics the bridge reads from local DDS and forwards over Zenoh.
@@ -28,6 +27,9 @@
           "^/global_costmap/costmap$",       // global costmap
           "^/robot_description$",            // URDF for RViz robot model
           "^/cmd_vel$",                      // commanded velocity (viz only)
+          "^/teleop/state$",                 // teleop_mux mode, source, deadman ages
+          "^/bringup/status$",               // bringup panel
+          "^/bringup/logs$",
         ],
 
         // ── Ground Station → Robot ────────────────────────────────────────────
@@ -35,6 +37,14 @@
         subscribers: [
           "^/initialpose$",                  // 2D Pose Estimate button in RViz
           "^/goal_pose$",                    // simple goal topic (fallback)
+          "^/teleop/ground/cmd_vel$",        // ground-station teleop (TELEOP_SOURCE=ground)
+          "^/teleop/ground/set_mode$",
+          "^/bringup/log_request$",
+        ],
+
+        service_servers: [
+          "^/bringup/go$",
+          "^/bringup/stop$",
         ],
 
         // Nav2 action servers on the robot — ground station nav2 panel calls these

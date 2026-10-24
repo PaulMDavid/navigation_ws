@@ -1,0 +1,15 @@
+# Installed by scripts/robot_setup/apply.sh (@REPO@ is replaced with the checkout path).
+# At boot: Wi-Fi mode and teleop containers for the saved command source.
+[Unit]
+Description=navigation_ws teleop command source (scripts/teleop_source.sh apply)
+After=NetworkManager.service docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=@REPO@/scripts/teleop_source.sh apply
+TimeoutStartSec=600
+
+[Install]
+WantedBy=multi-user.target

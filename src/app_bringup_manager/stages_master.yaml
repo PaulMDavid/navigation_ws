@@ -95,15 +95,17 @@ stages:
          name: smoother_server, params: nav2/nav2_params.yaml}
       - {package: nav2_planner, plugin: nav2_planner::PlannerServer,
          name: planner_server, params: nav2/nav2_params.yaml}
+      # spin/backup/wait go through the smoother too, so they reach the rover only via
+      # app_teleop's mux like everything else
       - {package: nav2_behaviors, plugin: behavior_server::BehaviorServer,
-         name: behavior_server, params: nav2/nav2_params.yaml}
+         name: behavior_server, params: nav2/nav2_params.yaml, remaps: {cmd_vel: cmd_vel_nav}}
       - {package: nav2_bt_navigator, plugin: nav2_bt_navigator::BtNavigator,
          name: bt_navigator, params: nav2/nav2_params.yaml}
       - {package: nav2_waypoint_follower, plugin: nav2_waypoint_follower::WaypointFollower,
          name: waypoint_follower, params: nav2/nav2_params.yaml}
       - {package: nav2_velocity_smoother, plugin: nav2_velocity_smoother::VelocitySmoother,
          name: velocity_smoother, params: nav2/nav2_params.yaml,
-         remaps: {cmd_vel: cmd_vel_nav, cmd_vel_smoothed: cmd_vel}}
+         remaps: {cmd_vel: cmd_vel_nav, cmd_vel_smoothed: cmd_vel_auto}}
       - {package: nav2_lifecycle_manager, plugin: nav2_lifecycle_manager::LifecycleManager,
          name: lifecycle_manager_navigation, params: nav2/nav2_params.yaml}
     checks:
@@ -127,3 +129,4 @@ stages:
     checks:
       - {type: ping, host: 192.168.1.230}
       - {type: subscribers, topic: /cmd_vel, min: 1, hint: "morpheus_control on the rover not running"}
+      - {type: subscribers, topic: /cmd_vel_auto, min: 1, hint: "app_teleop not running: Nav2's commands reach nothing"}

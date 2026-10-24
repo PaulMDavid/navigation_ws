@@ -13,3 +13,7 @@ frames_*.gv
 # ROS bags
 rosbags/
 *.db3
+
+# Teleop phone app: built by src/app_teleop_phone/build.sh, synced to the robot, not committed
+src/app_teleop_phone/www/rover-teleop.apk
+utils/teleop_link/results/
