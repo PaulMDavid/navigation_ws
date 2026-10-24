@@ -1,0 +1,68 @@
+# Bringup order for the Nav2 stack. Each stage starts only after every earlier
+# stage passed its checks; a stage fails when its timeout runs out first.
+#
+# Check types:
+#   mount         path is a real mount point on the host (not just a folder)
+#   file          path (relative to src/) exists
+#   ping          host answers one ICMP echo
+#   topic_exists  topic has at least one publisher
+#   topic_rate    topic arrives at >= min_hz (measured over the last 3 s)
+#   tf            transform parent -> child exists; max_age in s unless static
+#   lifecycle     a nav2 lifecycle manager's is_active service returns true
+#   subscribers   topic has at least `min` subscribers
+#
+# `pre` checks run before the stage's containers start and fail it immediately.
+# `required: false` stages only warn; they never block or fail the bringup.
+
+stages:
+  - name: preflight
+    title: Preflight
+    timeout: 10
+    checks:
+      - {type: mount, path: /mnt/ssd, hint: "NVMe not mounted; rtabmap would write to the SD card"}
+      - {type: file, path: config/dds/cyclonedds.xml}
+
+  - name: robot_state_publisher
+    title: Robot model (TF)
+    services: [app_robot_state_publisher]
+    timeout: 90  # entrypoint runs colcon build first
+    checks:
+      - {type: topic_exists, topic: /robot_description}
+      - {type: tf, parent: chassis_link, child: os_sensor, static: true}
+
+  - name: lidar
+    title: Ouster lidar
+    services: [app_lidar_ouster_ros]
+    timeout: 600  # first start compiles the driver; later starts reuse the build volume
+    pre:
+      - {type: ping, host: 169.254.61.114, hint: "lidar not on the network: powered? spinning? cabled to the switch?"}
+    checks:
+      - {type: topic_rate, topic: /ouster/points, min_hz: 8}
+      - {type: topic_rate, topic: /ouster/imu, min_hz: 50}
+      - {type: tf, parent: os_sensor, child: os_lidar, static: true}
+
+  - name: slam
+    title: SLAM (rtabmap)
+    services: [app_rtab_map, app_odom_relay]
+    timeout: 90
+    checks:
+      - {type: topic_rate, topic: /rtabmap/odom, min_hz: 5}
+      - {type: topic_rate, topic: /rtabmap/odom_reliable, min_hz: 5, hint: "app_odom_relay not republishing"}
+      - {type: topic_exists, topic: /rtabmap/map}
+      - {type: tf, parent: map, child: chassis_link, max_age: 1.0, hint: "odometry lost? rtabmap logs show Registration failed"}
+
+  - name: nav2
+    title: Nav2
+    services: [app_nav2]
+    timeout: 150
+    checks:
+      - {type: lifecycle, service: /lifecycle_manager_navigation/is_active}
+      - {type: topic_rate, topic: /local_costmap/costmap, min_hz: 1}
+
+  - name: rover
+    title: Rover drive link
+    required: false
+    timeout: 10
+    checks:
+      - {type: ping, host: 192.168.1.230}
+      - {type: subscribers, topic: /cmd_vel, min: 1, hint: "morpheus_control on the rover not running"}

@@ -40,6 +40,9 @@ Two things worth knowing that the graph makes visible:
   by both Nav2 costmaps as an obstacle layer.
 - **`/odometry/filtered` has no subscriber.** The EKF publishes it, but Nav2 takes its
   odometry from `/rtabmap/odom_reliable`. The dashed edge is available, not wired.
+- **`/rtabmap/odom_reliable` comes from `app_odom_relay`, not rtabmap.** rtabmap runs with
+  `qos:=2` so icp_odometry can read the Ouster's best-effort points, and that same setting
+  makes its `/rtabmap/odom` best-effort, which Nav2's reliable subscriber can't receive.
 
 ## Why it is built in separable pieces
 
@@ -133,7 +136,8 @@ What each package puts on the bus, and what it takes off it.
 | `app_zed2i_camera` | — hardware | `/zed2i/zed_node/rgb/color/rect/image[/compressed]`<br>`/zed2i/zed_node/rgb/color/rect/camera_info`<br>`/zed2i/zed_node/depth/depth_registered`<br>`/zed2i/zed_node/point_cloud/cloud_registered`<br>`/zed2i/zed2i/odom` |
 | `app_lidar_ouster_ros` | — hardware | `/ouster/points`<br>`/ouster/imu` |
 | `app_microstrain` | — hardware | `/imu/data` (driver default) |
-| `app_rtab_map` | `/ouster/points` → `scan_cloud`<br>`/ouster/imu` | `/rtabmap/map`<br>`/rtabmap/odom_reliable`<br>TF `map → odom` |
+| `app_rtab_map` | `/ouster/points` → `scan_cloud`<br>`/ouster/imu` | `/rtabmap/map`<br>`/rtabmap/odom` (best effort)<br>TF `map → odom` |
+| `app_odom_relay` | `/rtabmap/odom` (best effort) | `/rtabmap/odom_reliable` (reliable, for Nav2) |
 | `app_rtab_zed2i` | `/ouster/points` → `scan_cloud`<br>`/ouster/imu` | same contract, composable node |
 | `app_robot_localization` | `/zed2i/zed2i/odom` → `/odom` | `/odometry/filtered` |
 | `app_nav2` | `/rtabmap/map`<br>`/rtabmap/odom_reliable`<br>`/ouster/points` | velocity commands |
@@ -142,6 +146,7 @@ What each package puts on the bus, and what it takes off it.
 | `app_LIO_SAM` | `/ouster/points`<br>`/ouster/imu` | `/map`, `/modified_map` (PointCloud2)<br>`/path`, `/current_pose`, `/odom`<br>TF `map → chassis_link` |
 | `app_fast_livo2` | — hardware (ZED2i + Ouster, composed in-process) | FAST-LIVO2 odometry + map (extrinsics not yet calibrated — not wired into the runtime graph above) |
 | `app_zenoh_bridge` | — DDS bridge | carries the graph over unreliable WiFi |
+| `app_bringup_manager` | health of the Nav2 chain (topics, TF, lifecycle) | `/bringup/status`; starts/stops the Nav2 containers in order |
 | `app_template` | — | scaffold for the next subsystem |
 | `ground_station/rtabmap_viz` | `/rtabmap/map` and the SLAM graph | — desktop viewer |
 | `ground_station/nav2_viz` | Nav2 displays over the network | — desktop viewer |

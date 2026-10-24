@@ -44,6 +44,10 @@ services:
       - ./app_lidar_ouster_ros/LICENSE:/workspace/src/LICENSE
       - ./app_lidar_ouster_ros/data:/workspace/data
       - ./app_lidar_ouster_ros/config:/workspace/config
+      # The entrypoint runs colcon build on every start; keeping build/install
+      # makes every start after the first an incremental no-op instead of minutes.
+      - ouster_build:/workspace/build
+      - ouster_install:/workspace/install
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
       - ./config/dds/cyclonedds.xml:/etc/cyclonedds.xml:ro
     environment:
@@ -147,7 +151,7 @@ services:
       qos:=2
       qos_imu:=2
       qos_scan:=2
-      rtabmap_viz:=true
+      rtabmap_viz:=false
       database_path:=/root/Documents/RTAB-Map/rtabmap_lidar.db
       args:="--delete_db_on_start --Icp/VoxelSize 0.2 --Icp/Iterations 20 --Icp/PointToPlaneK 5 --Icp/PointToPlane true --Icp/MaxCorrespondenceDistance 1.0 --Reg/Strategy 1 --Reg/Force3DoF false --Grid/Sensor 0 --Grid/RangeMax 20.0 --Grid/RangeMin 0.65 --RGBD/ProximityBySpace true --RGBD/AngularUpdate 0.05 --RGBD/LinearUpdate 0.05 --Optimizer/Strategy 1 --Optimizer/Iterations 20"
     # To switch back to RGBD + lidar later, run:
@@ -174,6 +178,27 @@ services:
     #   params_file:=/workspace/config/params.yaml
     #
     # Uncomment the override file above if you want the old RGBD+lidar mode.
+
+  # qos:=2 above makes icp_odometry publish /rtabmap/odom best-effort, which Nav2's
+  # reliable odometry subscriber can't receive; this republishes it reliably.
+  app_odom_relay:
+    build:
+      context: ./app_rtab_map
+      dockerfile: Dockerfile
+      args:
+        ROS_DISTRO: humble
+    container_name: app_odom_relay_container
+    volumes:
+      - ./app_rtab_map/odom_reliable_relay.py:/workspace/odom_reliable_relay.py:ro
+      - ./config/dds/cyclonedds.xml:/etc/cyclonedds.xml:ro
+    environment:
+      - ROS_DISTRO=humble
+      - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+      - ROS_DOMAIN_ID=0
+      - CYCLONEDDS_URI=file:///etc/cyclonedds.xml
+    network_mode: host
+    ipc: host
+    command: python3 /workspace/odom_reliable_relay.py
 
   app_microstrain:
     build:
@@ -393,7 +418,8 @@ services:
     network_mode: host
     privileged: true
     working_dir: /workspace
-    command: tail -f /dev/null
+    command: ros2 launch app_nav2 nav2.launch.py
+
   app_gnss:
     build:
       context: ./app_gnss
@@ -425,3 +451,33 @@ services:
     privileged: true
     working_dir: /workspace
     command: ros2 launch app_gnss app_gnss.launch.py foxglove:=false
+
+  # Staged Nav2 bringup driven from the ground station; see app_bringup_manager/README.md.
+  # Start it once with:  docker compose -p navbringup up -d app_bringup_manager
+  app_bringup_manager:
+    build:
+      context: ./app_bringup_manager
+      dockerfile: Dockerfile
+      args:
+        ROS_DISTRO: humble
+    container_name: app_bringup_manager_container
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - .:/navws:ro
+      - ./config/dds/cyclonedds.xml:/etc/cyclonedds.xml:ro
+    environment:
+      - ROS_DISTRO=humble
+      - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+      - ROS_DOMAIN_ID=0
+      - CYCLONEDDS_URI=file:///etc/cyclonedds.xml
+      - PYTHONUNBUFFERED=1
+      - DISPLAY=${DISPLAY:-}
+    network_mode: host
+    ipc: host
+    pid: host
+    command: python3 /navws/app_bringup_manager/bringup_manager.py
+
+volumes:
+  ouster_build:
+  ouster_install:
