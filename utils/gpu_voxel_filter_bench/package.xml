@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypeversion="3.0"?>
+<package format="3">
+  <name>gpu_voxel_filter_bench</name>
+  <version>0.1.0</version>
+  <description>Benchmark: gpu_voxel_filter vs pcl::VoxelGrid on recorded clouds.</description>
+  <maintainer email="paulmdavid95@gmail.com">Paul David</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <depend>gpu_voxel_filter</depend>
+  <depend>rclcpp</depend>
+  <depend>rosbag2_cpp</depend>
+  <depend>sensor_msgs</depend>
+  <depend>pcl_conversions</depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

@@ -1,0 +1,7 @@
+test_rsp:
+  ros__parameters:
+    publish_frequency: 5.0
+    robot_description: >-
+      <robot name="t"><link name="test_base"/><link name="test_link"/>
+      <joint name="j" type="fixed"><parent link="test_base"/><child link="test_link"/>
+      <origin xyz="1 0 0"/></joint></robot>

@@ -1,0 +1,6 @@
+# measured by perf_compare.sh: rate for all, latency (receive - header.stamp) where they have a header
+/ouster/points
+/ouster/imu
+/rtabmap/odom_reliable
+/rtabmap/map
+/local_costmap/costmap
