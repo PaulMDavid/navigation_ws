@@ -29,3 +29,6 @@
 [submodule "src/groundstation_navigation"]
 	path = src/groundstation_navigation
 	url = https://github.com/PaulMDavid/groundstation_navigation.git
+[submodule "src/app_teleop_phone/flutter"]
+	path = src/app_teleop_phone/flutter
+	url = https://github.com/PaulMDavid/rover_teleop.git
