@@ -12,3 +12,11 @@ teleop_mux:
     max_angular: 1.0           # rad/s
     nav_topic: /cmd_vel_auto   # Nav2's velocity smoother output
     out_topic: /cmd_vel        # morpheus_control on the rover subscribes here
+
+# teleop_camera: the phone app's camera page
+teleop_camera:
+  ros__parameters:
+    input_topic: /zed2i/zed_node/rgb/color/rect/image/compressed  # check on orintwo
+    max_rate: 10.0             # Hz to the phone
+    max_width: 960             # px; wider frames are downscaled and re-encoded
+    jpeg_quality: 60

@@ -13,9 +13,16 @@ link (77↔78) connect them, as on the robot.
 
 ```bash
 ./run.sh                 # automated: probe.py phone, then probe.py ground
+CAMERA=1 ./run.sh        # + probe.py camera; needs the Arducam OV9281 plugged in
 ./phone_session.sh start # hands-on with a real phone; prints the URL to open
 ./phone_session.sh stop  # stops and prints record.py's report
 ```
+
+The laptop has no ZED, so the camera page is fed by an Arducam OV9281 (USB, `0c45:6366`)
+running the `taojue/app_ov9281_driver` image as-is (Fast DDS; it interoperates with the
+Cyclone containers on loopback). `OV9281_DEVICE` (default `/dev/video2`) and
+`OV9281_DIR` (its checkout, for the params file) override the defaults. The relay's input
+is pointed at `/ov9281/image_raw/compressed` here only; its default is the ZED topic.
 
 `run.sh` kills the ground Zenoh bridge mid-drive to cut that link. The phone deadman
 is tested as a silent drop: the socket stays open and commands just stop, which is
@@ -48,7 +55,27 @@ what a Wi-Fi drop looks like to the robot.
 - Flutter app, 681 s: connected after setting the
   address, manual driving at 10.0 Hz, peak 0.50 m/s / 1.00 rad/s. No stop caused by the
   phone going quiet was recorded (largest gap 1.10 s, while not driving).
-  **Leaving the app or losing Wi-Fi mid-drive is still to be tested.**
+  **Leaving the app or losing Wi-Fi mid-drive is still to be tested** (also not
+  exercised in the camera session: every stop there was the phone sending zeros).
+
+**2026-10-24, `probe.py camera` (OV9281, 1280x800 at 30 Hz in): 6/6 PASS.**
+- The topic is advertised to the phone, and no frames flow until the page subscribes.
+- 9.8 Hz out (`max_rate` 10), downscaled to 960x600 JPEG, about 22 KiB per frame
+  (~1.8 Mbit/s).
+- After the page unsubscribes, the relay drops its input subscription and sends 0 frames.
+- Fixed on the way: the throttle gave 7.8 Hz from 30 Hz input (frames arriving a hair
+  early lost their slot). It now allows a quarter period of slack.
+
+**2026-10-24, phone session with the camera page (app 1.2.0, landscape), 1062 s.**
+- Driving from the camera page: three drives in Manual with hold-to-drive held,
+  output up to 0.50 m/s and 1.00 rad/s. Between drives the phone kept sending zeros at
+  10 Hz.
+- Joystick commands sent in Autonomous were ignored: non-zero from the phone, zero out.
+- The page stayed subscribed once opened.
+- Found on the way: app 1.1.0 switched to landscape only on the camera page. The
+  rotation resized the PageView mid-swipe and bounced it back to the controls page
+  (subscribe then unsubscribe 60 ms later). From 1.2.0 the whole app is locked to
+  landscape.
 
 Not covered here: `scripts/wifi_mode.sh ap` (turning the laptop into an access point
 cuts its internet), and the rover itself.

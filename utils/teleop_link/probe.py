@@ -4,6 +4,9 @@
   probe.py phone   Foxglove WebSocket client, as the phone app speaks it
   probe.py ground  ROS node on domain 78, reaching the robot (77) only via Zenoh;
                    run.sh kills the ground Zenoh bridge mid-drive
+  probe.py camera  the camera page: subscribe /teleop/camera/compressed over the bridge
+                   (OV9281 standing in for the ZED), check rate, size, and that the
+                   relay stops when the page unsubscribes
 
 Prints one PASS/FAIL line per check and writes results/<phase>.json.
 """
@@ -221,6 +224,77 @@ async def phone_phase(watch):
     await fox.ws.close()
 
 
+# ── camera page ─────────────────────────────────────────────────────────────
+def compressed_image(payload):
+    """(format, jpeg bytes) from a CDR sensor_msgs/CompressedImage."""
+    body = payload[4:]  # encapsulation header; alignment is relative to what follows
+    off = 8  # header.stamp
+    def string(off):
+        n = struct.unpack_from('<I', body, off)[0]
+        return body[off + 4:off + 4 + n - 1].decode(), off + 4 + n
+    _, off = string(off)              # header.frame_id
+    off = (off + 3) & ~3
+    fmt, off = string(off)
+    off = (off + 3) & ~3
+    n = struct.unpack_from('<I', body, off)[0]
+    return fmt, body[off + 4:off + 4 + n]
+
+
+def jpeg_size(data):
+    i = 2
+    while i + 9 < len(data):
+        marker, length = data[i + 1], int.from_bytes(data[i + 2:i + 4], 'big')
+        if marker in (0xC0, 0xC1, 0xC2):
+            return int.from_bytes(data[i + 7:i + 9], 'big'), int.from_bytes(data[i + 5:i + 7], 'big')
+        i += 2 + length
+    return None
+
+
+async def camera_phase():
+    ws = await websockets.connect('ws://127.0.0.1:8765', subprotocols=['foxglove.sdk.v1'],
+                                  max_size=None)
+    channels, frames = {}, []
+
+    async def reader():
+        async for m in ws:
+            if isinstance(m, str):
+                msg = json.loads(m)
+                if msg['op'] == 'advertise':
+                    channels.update({c['topic']: c['id'] for c in msg['channels']})
+            elif m[0] == 1 and struct.unpack_from('<I', m, 1)[0] == 9:
+                frames.append((time.time(), *compressed_image(m[13:])))
+    task = asyncio.get_event_loop().create_task(reader())
+
+    ok = await asyncio.to_thread(wait_for, lambda: '/teleop/camera/compressed' in channels, 5)
+    check('camera topic advertised to the phone', ok)
+    await asyncio.sleep(2)
+    check('no frames before the page subscribes', not frames)
+
+    await ws.send(json.dumps({'op': 'subscribe', 'subscriptions': [
+        {'id': 9, 'channelId': channels['/teleop/camera/compressed']}]}))
+    t0 = time.time()
+    await asyncio.sleep(6)
+    got = [f for f in frames if f[0] > t0 + 2]  # after the relay's 0.5 s demand check
+    rate = len(got) / 4
+    check('frames arrive at <= max_rate (10 Hz)', 7 <= rate <= 10.5, f'{rate:.1f} Hz')
+    if got:
+        fmt, data = got[-1][1], got[-1][2]
+        size = jpeg_size(data)
+        check('frames are JPEG <= 960 px wide', 'jpeg' in fmt and size and size[0] <= 960,
+              f'format {fmt}, {size[0]}x{size[1]}, {len(data) / 1024:.0f} KiB' if size else fmt)
+        results['camera'] = {'hz': rate, 'size': size, 'kib': len(data) / 1024}
+        os.makedirs(RESULTS, exist_ok=True)
+        open(f'{RESULTS}/camera_frame.jpg', 'wb').write(data)
+
+    await ws.send(json.dumps({'op': 'unsubscribe', 'subscriptionIds': [9]}))
+    await asyncio.sleep(2)
+    n = len(frames)
+    await asyncio.sleep(2)
+    check('relay stops when the page unsubscribes', len(frames) == n, f'{len(frames) - n} after')
+    task.cancel()
+    await ws.close()
+
+
 # ── ground path ─────────────────────────────────────────────────────────────
 def ground_phase(watch, ground):
     check('mux set to ground source', watch.set_source('ground'))
@@ -277,6 +351,8 @@ def main():
     check('teleop_mux is running', wait_for(lambda: watch.state, 10))
     if phase == 'phone':
         asyncio.run(phone_phase(watch))
+    elif phase == 'camera':
+        asyncio.run(camera_phase())
     else:
         ground_ctx = rclpy.Context()
         rclpy.init(context=ground_ctx, domain_id=GROUND_DOMAIN)

@@ -15,4 +15,7 @@ foxglove_bridge:
     service_whitelist: ['(?!)']
     param_whitelist: ['(?!)']
     sysinfo: false
+    # bytes queued per client before messages are dropped: ~10 camera frames, so a slow
+    # Wi-Fi link drops frames instead of building up seconds of video lag
+    send_buffer_limit: 1000000
     remote_access: false

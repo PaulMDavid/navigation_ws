@@ -7,12 +7,19 @@ export PROBE_UID=$(id -u)
 rm -rf results && mkdir -p results
 
 docker compose up -d mux fox zenoh_robot zenoh_ground
-trap 'docker compose down >/dev/null 2>&1' EXIT
+trap 'docker compose --profile camera down >/dev/null 2>&1' EXIT
 sleep 3
 status=0
 
 echo "== phone path (foxglove_bridge) =="
 docker compose --profile probe run --rm probe python3 probe.py phone || status=1
+
+if [[ -n ${CAMERA:-} ]]; then
+  echo "== camera page (OV9281 standing in for the ZED) =="
+  docker compose --profile camera up -d camera ov9281
+  sleep 5
+  docker compose --profile probe run --rm probe python3 probe.py camera || status=1
+fi
 
 echo "== ground path (Zenoh) =="
 docker compose --profile probe run --rm probe python3 probe.py ground & probe=$!

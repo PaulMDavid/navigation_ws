@@ -38,18 +38,38 @@ phone through a WebSocket. DDS stays on orintwo and the wired network.
 Parameters: [`config/teleop.yaml`](config/teleop.yaml). The speed limits there are
 placeholders until checked against `morpheus_control`.
 
+Operators send a plain `Twist` (forward speed, turn rate), like Nav2. Wheel kinematics
+are `morpheus_control`'s business on the rover. Full stick sideways asks for a turn in
+place (as Nav2's `use_rotate_to_heading` does); if `morpheus_control` is Ackermann-only,
+both need adapting.
+
 Nav2's velocity smoother publishes `/cmd_vel_auto` instead of `/cmd_vel`, and
 `behavior_server` (spin, backup) goes through the smoother instead of straight to
 `/cmd_vel` (`stages_master.yaml`, `app_nav2/launch/navigation.launch.py`). Without this
 container running, Nav2's commands reach nothing; the bringup's rover stage checks for it.
 
+## Camera for the phone
+
+`teleop_camera.py` (compose service `app_teleop_camera`, phone source only) relays a
+compressed image into the phone domain as `/teleop/camera/compressed` for the app's
+camera page.
+- Input: `input_topic` in `config/teleop.yaml`, the ZED 2i's
+  `/zed2i/zed_node/rgb/color/rect/image/compressed`. Check that name on orintwo: the
+  nav_master camera stage still checks the older `rgb/image_rect_color` naming.
+- Capped at `max_rate` (10 Hz). Frames wider than `max_width` (960 px) are re-encoded at
+  `jpeg_quality` (60). Measured: 960x600, about 22 KiB per frame, ~1.8 Mbit/s.
+- Lazy: it subscribes to the camera only while the camera page is open.
+- It runs in its own process, so JPEG work never delays teleop_mux.
+- foxglove_bridge's `send_buffer_limit` (1 MB, about 10 frames) makes a slow link drop
+  frames instead of building up video lag.
+
 ## Why the phone has its own DDS domain
 
 foxglove_bridge 3.6.0 (current Humble release) ignores `client_topic_whitelist`: a
 WebSocket client can make it publish any topic, `/cmd_vel` included. So
-app_foxglove_bridge runs in DDS domain `TELEOP_PHONE_DOMAIN` (51), and teleop_mux is
-the only node in both domains: it reads `/teleop/phone/*` there and mirrors
-`/teleop/state` there. Whatever a client publishes stays in domain 51.
+app_foxglove_bridge runs in DDS domain `TELEOP_PHONE_DOMAIN` (51). Only teleop_mux and
+teleop_camera are in both domains: teleop_mux reads `/teleop/phone/*` there and mirrors
+`/teleop/state` there, and teleop_camera publishes `/teleop/camera/compressed` there. Whatever a client publishes stays in domain 51.
 To give the phone more topics later, relay them into domain 51 (extend teleop_mux, or a
 zenoh-bridge-ros2dds pair with an allowlist).
 
@@ -63,7 +83,7 @@ installs `navws-teleop.service`, which applies it at boot).
 | --- | --- | --- |
 | orintwo Wi-Fi | eduroam (client) | access point `orintwo-teleop`, 10.42.0.1/24 |
 | who drives in manual | ground-station PC, Zenoh | phone app, foxglove_bridge |
-| containers | app_teleop, app_zenoh_bridge | + app_foxglove_bridge, app_teleop_phone |
+| containers | app_teleop, app_zenoh_bridge | + app_foxglove_bridge, app_teleop_phone, app_teleop_camera |
 
 ```bash
 # on orintwo, over the wired link (192.168.1.210), never over Wi-Fi:

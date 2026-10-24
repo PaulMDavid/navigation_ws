@@ -489,7 +489,8 @@ services:
   # app_teleop/README.md. These run independently of the bringup; at boot,
   # scripts/teleop_source.sh starts the ones the command source needs:
   #   ground: app_teleop + app_zenoh_bridge          (orintwo on eduroam)
-  #   phone:  + app_foxglove_bridge + app_teleop_phone (orintwo as Wi-Fi access point)
+  #   phone:  + app_foxglove_bridge + app_teleop_phone + app_teleop_camera
+  #           (orintwo as Wi-Fi access point)
   app_teleop:
     build:
       context: ./app_teleop
@@ -512,6 +513,29 @@ services:
     network_mode: host
     ipc: host
     command: python3 app_teleop/teleop_mux.py --ros-args --params-file app_teleop/config/teleop.yaml
+
+  # Camera for the phone app's camera page: the ZED's compressed image, capped for Wi-Fi,
+  # relayed into the phone domain only while the page is open (app_teleop/README.md).
+  app_teleop_camera:
+    build:
+      context: ./app_teleop
+      dockerfile: Dockerfile
+      args:
+        ROS_DISTRO: humble
+    container_name: app_teleop_camera_container
+    restart: unless-stopped
+    volumes:
+      - ./app_teleop:/workspace/app_teleop:ro
+      - ./config/dds/cyclonedds.xml:/etc/cyclonedds.xml:ro
+    environment:
+      - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+      - ROS_DOMAIN_ID=0
+      - CYCLONEDDS_URI=file:///etc/cyclonedds.xml
+      - PYTHONUNBUFFERED=1
+      - TELEOP_PHONE_DOMAIN=${TELEOP_PHONE_DOMAIN:-51}
+    network_mode: host
+    ipc: host
+    command: python3 app_teleop/teleop_camera.py --ros-args --params-file app_teleop/config/teleop.yaml
 
   # The phone app's link (Foxglove WebSocket, port 8765), in the phone domain only.
   app_foxglove_bridge:

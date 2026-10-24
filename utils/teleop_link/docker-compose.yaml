@@ -40,6 +40,36 @@ services:
       - ../../src/app_foxglove_bridge/config:/config:ro
     command: bash -c 'source /opt/ros/humble/setup.bash && exec ros2 run foxglove_bridge foxglove_bridge --ros-args --params-file /config/foxglove_bridge.yaml'
 
+  camera:
+    <<: *ros
+    image: navws/app_teleop
+    environment:
+      <<: *env
+      TELEOP_PHONE_DOMAIN: "79"
+    volumes:
+      - ./cyclonedds_lo.xml:/etc/cyclonedds.xml:ro
+      - ../../src/app_teleop:/workspace/app_teleop:ro
+    # the laptop has no ZED: the OV9281 stands in (service ov9281 below)
+    command: bash -c 'source /opt/ros/humble/setup.bash && exec python3 app_teleop/teleop_camera.py --ros-args --params-file app_teleop/config/teleop.yaml -p teleop_camera:input_topic:=$${CAMERA_TOPIC:-/ov9281/image_raw/compressed}'
+
+  # Stand-in for the ZED: the Arducam OV9281 driver (~/taojue/app_ov9281_driver image),
+  # run as-is on /dev/video2. Publishes /ov9281/image_raw/compressed, 1280x800 mono.
+  ov9281:
+    <<: *ros
+    image: taojue/app_ov9281_driver:latest
+    # that image has Fast DDS only; it interoperates with the others' Cyclone over loopback
+    environment:
+      ROS_DOMAIN_ID: "77"
+      RMW_IMPLEMENTATION: rmw_fastrtps_cpp
+      ROS_LOCALHOST_ONLY: "1"
+    devices:
+      - ${OV9281_DEVICE:-/dev/video2}:/dev/video0
+    volumes:
+      # its own params (1280x800), mounted the way its compose file does
+      - ${OV9281_DIR:-~/taojue/app_ov9281_driver}/src/app_ov9281_driver/config/params.yaml:/workspace/install/app_ov9281_driver/share/app_ov9281_driver/config/params.yaml:ro
+    command: bash -c 'source /workspace/install/setup.bash && exec ros2 launch app_ov9281_driver ov9281.launch.py'
+    profiles: [camera]
+
   phone_app:
     <<: *ros
     image: navws/app_teleop
