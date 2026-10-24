@@ -1,22 +1,10 @@
-ARG ROS_DISTRO=humble
-FROM ros:${ROS_DISTRO}-ros-base
+# Official multi-arch image (amd64 + arm64). The ground station runs the same tag:
+# both ends of a Zenoh link should be the same version.
+FROM eclipse/zenoh-bridge-ros2dds:1.8.0
 
-ENV DEBIAN_FRONTEND=noninteractive
-ENV ROS_DISTRO=${ROS_DISTRO}
+# Humble uses 24-byte GIDs on ros_discovery_info; without this the bridge assumes iron
+ENV ROS_DISTRO=humble
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    ros-${ROS_DISTRO}-rmw-cyclonedds-cpp \
-    && rm -rf /var/lib/apt/lists/*
-
-# Eclipse Zenoh apt repo — provides zenoh-bridge-ros2dds binary (multi-arch: amd64 + arm64)
-RUN echo "deb [trusted=yes] https://download.eclipse.org/zenoh/debian-repo/ /" \
-    | tee /etc/apt/sources.list.d/zenoh.list \
-    && apt-get update \
-    && apt-get install -y zenoh-bridge-ros2dds \
-    && rm -rf /var/lib/apt/lists/*
-
-RUN mkdir -p /etc/zenoh
 COPY config/zenoh_bridge_robot.json5 /etc/zenoh/config.json5
 
-ENTRYPOINT ["zenoh-bridge-ros2dds"]
 CMD ["-c", "/etc/zenoh/config.json5"]

@@ -1,0 +1,21 @@
+# foxglove_bridge on orintwo: the phone app's link to ROS (Foxglove WebSocket protocol,
+# port 8765). Clients may watch any topic but publish only the phone's teleop topics;
+# teleop_mux ignores those unless TELEOP_SOURCE=phone. The protocol has no
+# authentication, so this whitelist and the Wi-Fi password are the only gates.
+# To grow the app: widen client_topic_whitelist / service_whitelist and add the
+# capability, nothing else changes.
+foxglove_bridge:
+  ros__parameters:
+    port: 8765
+    address: 0.0.0.0
+    topic_whitelist: ['.*']
+    client_topic_whitelist: ['^/teleop/phone/(cmd_vel|set_mode)$']
+    # no parameters capability: a client must not be able to raise teleop_mux's limits
+    capabilities: [clientPublish, connectionGraph]
+    service_whitelist: ['(?!)']
+    param_whitelist: ['(?!)']
+    sysinfo: false
+    # bytes queued per client before messages are dropped: ~10 camera frames, so a slow
+    # Wi-Fi link drops frames instead of building up seconds of video lag
+    send_buffer_limit: 1000000
+    remote_access: false

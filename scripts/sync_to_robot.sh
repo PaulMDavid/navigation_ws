@@ -16,6 +16,7 @@ rsync -az --delete --info=stats1 \
   --exclude='.git' --exclude='.gitmodules' \
   --exclude='build/' --exclude='install/' --exclude='log/' \
   --exclude='__pycache__/' --exclude='*.pyc' \
+  --exclude='.dart_tool/' --exclude='.gradle/' \
   --exclude='data/' --exclude='rosbags/' \
   --exclude='calib_data/' --exclude='*.bag' --exclude='*.pcd' --exclude='*.db3' \
   --rsync-path="mkdir -p '$dest' && rsync" \

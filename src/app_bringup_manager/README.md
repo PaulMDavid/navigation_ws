@@ -17,7 +17,7 @@ runs out first, or immediately if one of its containers exits.
 | Ouster lidar | `app_lidar_ouster_ros` | lidar answers ping first; `/ouster/points` ≥ 8 Hz, `/ouster/imu` ≥ 50 Hz, TF `os_sensor → os_lidar` |
 | SLAM | `app_rtab_map`, `app_odom_relay` | `/rtabmap/odom` and `/rtabmap/odom_reliable` ≥ 5 Hz, `/rtabmap/map`, TF `map → chassis_link` < 1 s old |
 | Nav2 | `app_nav2` | lifecycle manager active; local costmap ≥ 1 Hz |
-| Rover link (optional) | — | rover pings; `/cmd_vel` has a subscriber |
+| Rover link (optional) | — | rover pings; `/cmd_vel` has a subscriber; app_teleop takes `/cmd_vel_auto` |
 
 After everything is up, the checks keep running every couple of seconds. A stage
 that fails three sweeps in a row turns red, with the reason and its container logs.

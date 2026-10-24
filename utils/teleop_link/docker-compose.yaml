@@ -1,0 +1,113 @@
+# The laptop as orintwo: the teleop chain on loopback DDS, plus the two links.
+#   robot side   (domain 77): teleop_mux, zenoh router
+#   phone side   (domain 79): foxglove_bridge, phone web app; teleop_mux joins it too
+#   ground side  (domain 78): a zenoh client bridge, as on the ground-station PC
+# All share one host: only teleop_mux (77<->79) and the Zenoh link (77<->78) connect the
+# domains, as on the robot. DDS stays on lo.
+x-ros: &ros
+  network_mode: host
+  ipc: host
+  environment: &env
+    RMW_IMPLEMENTATION: rmw_cyclonedds_cpp
+    CYCLONEDDS_URI: file:///etc/cyclonedds.xml
+    ROS_DOMAIN_ID: "77"
+    PYTHONUNBUFFERED: "1"
+    TELEOP_SOURCE: ${TELEOP_SOURCE:-phone}
+    ROS_DISTRO: humble
+
+services:
+  mux:
+    <<: *ros
+    build: ../../src/app_teleop
+    image: navws/app_teleop
+    volumes:
+      - ./cyclonedds_lo.xml:/etc/cyclonedds.xml:ro
+      - ../../src/app_teleop:/workspace/app_teleop:ro
+    environment:
+      <<: *env
+      TELEOP_PHONE_DOMAIN: "79"
+    command: bash -c 'source /opt/ros/humble/setup.bash && exec python3 app_teleop/teleop_mux.py --ros-args --params-file app_teleop/config/teleop.yaml'
+
+  fox:
+    <<: *ros
+    build: ../../src/app_foxglove_bridge
+    image: navws/app_foxglove_bridge
+    environment:
+      <<: *env
+      ROS_DOMAIN_ID: "79"
+    volumes:
+      - ./cyclonedds_lo.xml:/etc/cyclonedds.xml:ro
+      - ../../src/app_foxglove_bridge/config:/config:ro
+    command: bash -c 'source /opt/ros/humble/setup.bash && exec ros2 run foxglove_bridge foxglove_bridge --ros-args --params-file /config/foxglove_bridge.yaml'
+
+  camera:
+    <<: *ros
+    image: navws/app_teleop
+    environment:
+      <<: *env
+      TELEOP_PHONE_DOMAIN: "79"
+    volumes:
+      - ./cyclonedds_lo.xml:/etc/cyclonedds.xml:ro
+      - ../../src/app_teleop:/workspace/app_teleop:ro
+    # the laptop has no ZED: the OV9281 stands in (service ov9281 below)
+    command: bash -c 'source /opt/ros/humble/setup.bash && exec python3 app_teleop/teleop_camera.py --ros-args --params-file app_teleop/config/teleop.yaml -p "teleop_camera:input_topics:=[$${CAMERA_TOPIC:-/ov9281/image_raw/compressed}]"'
+
+  # Stand-in for the ZED: the Arducam OV9281 driver (~/taojue/app_ov9281_driver image),
+  # run as-is on /dev/video2. Publishes /ov9281/image_raw/compressed, 1280x800 mono.
+  ov9281:
+    <<: *ros
+    image: taojue/app_ov9281_driver:latest
+    # that image has Fast DDS only; it interoperates with the others' Cyclone over loopback
+    environment:
+      ROS_DOMAIN_ID: "77"
+      RMW_IMPLEMENTATION: rmw_fastrtps_cpp
+      ROS_LOCALHOST_ONLY: "1"
+    devices:
+      - ${OV9281_DEVICE:-/dev/video2}:/dev/video0
+    volumes:
+      # its own params (1280x800), mounted the way its compose file does
+      - ${OV9281_DIR:-~/taojue/app_ov9281_driver}/src/app_ov9281_driver/config/params.yaml:/workspace/install/app_ov9281_driver/share/app_ov9281_driver/config/params.yaml:ro
+    command: bash -c 'source /workspace/install/setup.bash && exec ros2 launch app_ov9281_driver ov9281.launch.py'
+    profiles: [camera]
+
+  phone_app:
+    <<: *ros
+    image: navws/app_teleop
+    volumes:
+      - ../../src/app_teleop_phone/www:/www:ro
+    command: python3 -m http.server 8080 --directory /www
+
+  zenoh_robot:
+    <<: *ros
+    build: ../../src/app_zenoh_bridge
+    image: navws/app_zenoh_bridge
+    volumes:
+      - ./cyclonedds_lo.xml:/etc/cyclonedds.xml:ro
+      - ../../src/app_zenoh_bridge/config/zenoh_bridge_robot.json5:/etc/zenoh/config.json5:ro
+    command: ["-c", "/etc/zenoh/config.json5"]
+
+  zenoh_ground:
+    <<: *ros
+    environment:
+      <<: *env
+      ROS_DOMAIN_ID: "78"
+    image: navws/app_zenoh_bridge
+    volumes:
+      - ./cyclonedds_lo.xml:/etc/cyclonedds.xml:ro
+      - ../../src/groundstation_navigation/config/zenoh_bridge_ground.json5:/etc/zenoh/config.json5:ro
+    command: ["-c", "/etc/zenoh/config.json5", "-e", "tcp/127.0.0.1:7447"]
+
+  # test clients: an ROS node on either domain plus a Foxglove WebSocket client
+  probe:
+    <<: *ros
+    build: .
+    image: navws/teleop_link_probe
+    volumes:
+      - ./cyclonedds_lo.xml:/etc/cyclonedds.xml:ro
+      - .:/probe:ro
+      - ./results:/probe/results
+    user: ${PROBE_UID:-1000}
+    environment:
+      <<: *env
+      ROS_HOME: /tmp/ros
+    profiles: [probe]

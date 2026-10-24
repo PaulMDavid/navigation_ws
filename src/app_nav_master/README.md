@@ -73,10 +73,10 @@ Plugin names as listed by `ros2 component types` in this image:
 | nav2 | nav2_controller | `nav2_controller::ControllerServer` | controller_server | nav2_params.yaml § | `cmd_vel:=cmd_vel_nav` | no |
 | nav2 | nav2_smoother | `nav2_smoother::SmootherServer` | smoother_server | § | | no |
 | nav2 | nav2_planner | `nav2_planner::PlannerServer` | planner_server | § | | no |
-| nav2 | nav2_behaviors | `behavior_server::BehaviorServer` | behavior_server | § | | no |
+| nav2 | nav2_behaviors | `behavior_server::BehaviorServer` | behavior_server | § | `cmd_vel:=cmd_vel_nav` | no |
 | nav2 | nav2_bt_navigator | `nav2_bt_navigator::BtNavigator` | bt_navigator | § | | no |
 | nav2 | nav2_waypoint_follower | `nav2_waypoint_follower::WaypointFollower` | waypoint_follower | § | | no |
-| nav2 | nav2_velocity_smoother | `nav2_velocity_smoother::VelocitySmoother` | velocity_smoother | § | `cmd_vel:=cmd_vel_nav`, `cmd_vel_smoothed:=cmd_vel` | no |
+| nav2 | nav2_velocity_smoother | `nav2_velocity_smoother::VelocitySmoother` | velocity_smoother | § | `cmd_vel:=cmd_vel_nav`, `cmd_vel_smoothed:=cmd_vel_auto` (app_teleop decides what reaches `/cmd_vel`) | no |
 | nav2 | nav2_lifecycle_manager | `nav2_lifecycle_manager::LifecycleManager` | lifecycle_manager_navigation | § | | no |
 
 § = that node's section of `nav2/nav2_params.yaml`. Humble refuses intra-process on

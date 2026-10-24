@@ -29,7 +29,9 @@ flowchart LR
   ouster -->|"/ouster/points<br/>costmap obstacle layer"| nav2
   ekf -.->|"/odometry/filtered<br/>published, not consumed"| nav2
   aruco -->|"aruco_detections"| out[" "]
-  nav2 -->|"velocity commands"| wheels
+  teleop["app_teleop<br/>mode + deadman"]
+  nav2 -->|"/cmd_vel_auto"| teleop
+  teleop -->|"/cmd_vel"| wheels
 
   style out fill:none,stroke:none
 ```
@@ -146,6 +148,8 @@ What each package puts on the bus, and what it takes off it.
 | `app_LIO_SAM` | `/ouster/points`<br>`/ouster/imu` | `/map`, `/modified_map` (PointCloud2)<br>`/path`, `/current_pose`, `/odom`<br>TF `map → chassis_link` |
 | `app_fast_livo2` | — hardware (ZED2i + Ouster, composed in-process) | FAST-LIVO2 odometry + map (extrinsics not yet calibrated — not wired into the runtime graph above) |
 | `app_zenoh_bridge` | — DDS bridge | carries the graph over unreliable WiFi |
+| `app_teleop` | `/cmd_vel_auto` (Nav2's smoother)<br>`/teleop/{ground,phone}/cmd_vel`, `…/set_mode` | `/cmd_vel` (to the rover)<br>`/teleop/state` |
+| `app_foxglove_bridge` | — phone over WebSocket, DDS domain 51 | `/teleop/phone/*` in domain 51 only |
 | `app_bringup_manager` | health of the Nav2 chain (topics, TF, lifecycle) | `/bringup/status`; starts/stops the Nav2 containers in order |
 | `app_template` | — | scaffold for the next subsystem |
 | `ground_station/rtabmap_viz` | `/rtabmap/map` and the SLAM graph | — desktop viewer |
