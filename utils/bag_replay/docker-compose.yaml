@@ -1,0 +1,35 @@
+# Stand-in for the Ouster: replays a recorded bag with fresh timestamps.
+#   BAG=/mnt/ssd/pdavid/bags/lab_bag_Jun22_ouster docker compose up -d
+# RATE=2.0 plays twice as fast: 20 Hz clouds, the way odom_rate_hang raises the load.
+name: bag_replay
+
+x-ros: &ros
+  build: .
+  network_mode: host
+  ipc: host
+  environment:
+    - ROS_DOMAIN_ID=0
+    - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+    - CYCLONEDDS_URI=file:///etc/cyclonedds.xml
+    - PYTHONUNBUFFERED=1
+
+services:
+  player:
+    <<: *ros
+    container_name: bag_replay_player
+    volumes:
+      - ${BAG:-/mnt/ssd/pdavid/bags/lab_bag_Jun22_ouster}:/bag:ro
+      - ../../src/config/dds/cyclonedds.xml:/etc/cyclonedds.xml:ro
+    # the bag's own topics go to /replay/*; restamp republishes them on the real names
+    command: >
+      ros2 bag play /bag --loop --disable-keyboard-controls --rate ${RATE:-1.0}
+      --topics /ouster/points /ouster/imu /tf_static
+      --remap /ouster/points:=/replay/points /ouster/imu:=/replay/imu /tf_static:=/replay/tf_static
+
+  restamp:
+    <<: *ros
+    container_name: bag_replay_restamp
+    volumes:
+      - ./restamp.py:/restamp.py:ro
+      - ../../src/config/dds/cyclonedds.xml:/etc/cyclonedds.xml:ro
+    command: python3 /restamp.py

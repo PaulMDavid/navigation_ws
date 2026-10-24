@@ -3,7 +3,9 @@
 
 Starts the compose services in stages.yaml one stage at a time, gating each
 stage on health checks instead of sleeps, keeps watching them afterwards, and
-publishes everything it sees as JSON on /bringup/status.
+publishes everything it sees as JSON on /bringup/status. Stages can also load
+composable nodes into a running component container (stages_master.yaml), so
+recovering one stage reloads its nodes without restarting the whole process.
 
 Interface (all std types, so the GUI needs no custom messages):
   /bringup/go          std_srvs/Trigger  start, or restart from the first stage that isn't ready
@@ -25,10 +27,12 @@ import time
 import rclpy
 import tf2_ros
 import yaml
+from composition_interfaces.srv import LoadNode, UnloadNode
 from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.duration import Duration
 from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
+from rclpy.parameter import Parameter
 from rclpy.qos import DurabilityPolicy, QoSProfile, ReliabilityPolicy, qos_profile_sensor_data
 from rclpy.time import Time
 from rosidl_runtime_py.utilities import get_message
@@ -37,6 +41,8 @@ from std_srvs.srv import Trigger
 
 SELF_CONTAINER = os.environ.get('BRINGUP_SELF_CONTAINER', 'app_bringup_manager_container')
 WS_MOUNT = '/navws'          # where src/ is mounted inside this container
+STAGES = os.environ.get('BRINGUP_STAGES', 'stages.yaml')  # in app_bringup_manager/
+LOAD_TIMEOUT = 60.0          # waiting for the container's load service + the load itself
 RATE_WINDOW = 3.0            # seconds of history used for topic_rate
 RATE_PERIOD = 15.0           # once up, each topic is sampled for RATE_WINDOW this often
 MONITOR_FAILS = 3            # consecutive failed sweeps before a ready stage turns red
@@ -166,19 +172,54 @@ class Watcher:
             return 0.0
         return (self.node.get_clock().now() - stamp).nanoseconds / 1e9
 
-    def trigger(self, service, timeout=2.0):
+    def call(self, srv_type, service, request, timeout=2.0, wait=0.0):
+        """Call a service; None if it isn't available within `wait` s or doesn't answer."""
         client = self.clients.get(service)
         if client is None:
             client = self.clients[service] = self.node.create_client(
-                Trigger, service, callback_group=self.group)
-        if not client.service_is_ready():
-            return None
+                srv_type, service, callback_group=self.group)
+        deadline = time.monotonic() + wait
+        while not client.service_is_ready():
+            if time.monotonic() >= deadline:
+                return None
+            time.sleep(0.5)
         done = threading.Event()
-        future = client.call_async(Trigger.Request())
+        future = client.call_async(request)
         future.add_done_callback(lambda _f: done.set())
         if not done.wait(timeout):
             return None
         return future.result()
+
+    def trigger(self, service, timeout=2.0):
+        return self.call(Trigger, service, Trigger.Request(), timeout)
+
+    def node_names(self):
+        return {f'{ns.rstrip("/")}/{n}' for n, ns in self.node.get_node_names_and_namespaces()}
+
+
+def params_from_yaml(path, node):
+    """Parameters for `node` from a ros__parameters file, as rcl_interfaces messages.
+
+    LoadNode takes parameter messages, not a file, so the file is flattened here.
+    A file with a single top-level entry is used as-is, otherwise the entry for the
+    node's name (or /**) is.
+    """
+    with open(path) as f:
+        data = yaml.safe_load(f) or {}
+    if len(data) == 1:
+        section = next(iter(data.values()))
+    else:
+        section = next((data[k] for k in (node, f'/{node}', '/**') if k in data), {})
+    params = []
+
+    def flatten(d, prefix=''):
+        for k, v in d.items():
+            if isinstance(v, dict):
+                flatten(v, f'{prefix}{k}.')
+            elif v != []:  # an empty list has no type to declare
+                params.append(Parameter(f'{prefix}{k}', value=v).to_parameter_msg())
+    flatten(section.get('ros__parameters', {}))
+    return params
 
 
 def host_mounts():
@@ -194,8 +235,10 @@ class Stage:
         self.services = spec.get('services', [])
         self.checks = spec.get('checks', [])
         self.pre = spec.get('pre', [])
+        self.components = spec.get('components', [])
         self.timeout = spec.get('timeout', 60)
         self.required = spec.get('required', True)
+        self.loaded = {}         # component node name -> unique_id in the container
         self.reset()
 
     def reset(self, state='pending'):
@@ -215,6 +258,8 @@ class BringupManager(Node):
         with open(config_path) as f:
             cfg = yaml.safe_load(f)
         self.stages = [Stage(s) for s in cfg['stages']]
+        self.container = cfg.get('container')           # component container node
+        self.config_dir = os.path.join(WS_MOUNT, cfg.get('config_dir', ''))
         self.docker = Docker()
         self.watch = Watcher(self)
         self.lock = threading.RLock()
@@ -329,6 +374,9 @@ class BringupManager(Node):
         if kind == 'subscribers':
             n = self.count_subscribers(c['topic'])
             return n >= c.get('min', 1), f'{n} subscriber(s)'
+        if kind == 'node':
+            ok = c['node'] in self.watch.node_names()
+            return ok, 'running' if ok else 'not in graph'
         return False, f'unknown check type {kind}'
 
     @staticmethod
@@ -339,6 +387,7 @@ class BringupManager(Node):
             'topic_rate': lambda: c['topic'], 'lifecycle': lambda: c['service'],
             'tf': lambda: f'TF {c["parent"]} → {c["child"]}',
             'subscribers': lambda: f'{c["topic"]} subscribers',
+            'node': lambda: f'node {c["node"]}',
         }.get(c['type'], lambda: c['type'])()
 
     def evaluate(self, stage, checks=None, continuous=True):
@@ -355,6 +404,13 @@ class BringupManager(Node):
                 ok, value = False, f'check error: {e}'
             results.append({'label': self.label(c), 'ok': ok, 'value': value,
                             'hint': c.get('hint', '') if ok is False else ''})
+        if checks is None and stage.components:
+            names = self.watch.node_names()
+            for c in stage.components:
+                node = self.component_node(c)
+                ok = node in names
+                results.append({'label': f'node {node}', 'ok': ok,
+                                'value': 'running' if ok else 'not in graph', 'hint': ''})
         containers = [self.docker.container_state(s) for s in stage.services]
         with self.lock:
             stage.results = results
@@ -411,7 +467,51 @@ class BringupManager(Node):
             return f'docker compose up failed: {out.splitlines()[-1] if out else rc}'
         return None
 
+    @staticmethod
+    def component_node(c):
+        ns = c.get('namespace', '').strip('/')
+        return f'/{ns}/{c["name"]}' if ns else f'/{c["name"]}'
+
+    def load_components(self, stage):
+        for c in stage.components:
+            req = LoadNode.Request()
+            req.package_name, req.plugin_name, req.node_name = c['package'], c['plugin'], c['name']
+            req.node_namespace = '/' + c.get('namespace', '').strip('/')  # must be absolute
+            req.remap_rules = [f'{a}:={b}' for a, b in c.get('remaps', {}).items()]
+            if 'params' in c:
+                try:
+                    req.parameters = params_from_yaml(
+                        os.path.join(self.config_dir, c['params']), c['name'])
+                except (OSError, yaml.YAMLError, TypeError) as e:
+                    return f'parameters for {c["name"]}: {e}'
+            # file_params: {param: path under src/} sets a string parameter to a file's
+            # text, e.g. robot_description to the URDF
+            for key, path in c.get('file_params', {}).items():
+                try:
+                    with open(os.path.join(WS_MOUNT, path)) as f:
+                        req.parameters.append(Parameter(key, value=f.read()).to_parameter_msg())
+                except OSError as e:
+                    return f'{key} for {c["name"]}: {e}'
+            req.extra_arguments = [Parameter('use_intra_process_comms',
+                                             value=c.get('intra_process', False)).to_parameter_msg()]
+            res = self.watch.call(LoadNode, f'{self.container}/_container/load_node', req,
+                                  timeout=LOAD_TIMEOUT, wait=LOAD_TIMEOUT)
+            if res is None:
+                return f'{self.container} load service not available'
+            if not res.success:
+                return f'loading {c["plugin"]} failed: {res.error_message}'
+            stage.loaded[c['name']] = res.unique_id
+            self.event('info', f'{stage.title}: loaded {res.full_node_name}')
+        return None
+
+    def unload_components(self, stage):
+        for name, uid in reversed(list(stage.loaded.items())):
+            self.watch.call(UnloadNode, f'{self.container}/_container/unload_node',
+                            UnloadNode.Request(unique_id=uid), timeout=10.0)
+        stage.loaded.clear()
+
     def stop_services(self, stage):
+        self.unload_components(stage)
         if stage.services:
             self.docker.compose('stop', '-t', '10', *stage.services, timeout=120)
             self.docker.compose('rm', '-f', *stage.services, timeout=60)
@@ -471,7 +571,7 @@ class BringupManager(Node):
         if stage.pre and self.evaluate(stage, stage.pre) is not True:
             return self.fail(stage, self.first_failure(stage), grab=False)
 
-        err = self.start_services(stage)
+        err = self.start_services(stage) or self.load_components(stage)
         if err:
             return self.fail(stage, err)
 
@@ -548,7 +648,7 @@ class BringupManager(Node):
 
 def main():
     config = sys.argv[1] if len(sys.argv) > 1 else os.path.join(
-        WS_MOUNT, 'app_bringup_manager', 'stages.yaml')
+        WS_MOUNT, 'app_bringup_manager', STAGES)
     rclpy.init()
     node = BringupManager(config)
     executor = MultiThreadedExecutor(num_threads=4)

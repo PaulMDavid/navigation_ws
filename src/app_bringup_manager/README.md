@@ -26,6 +26,39 @@ that fails three sweeps in a row turns red, with the reason and its container lo
 before it stay up, everything from it onwards is stopped and started again.
 Note that restarting SLAM wipes the map (`--delete_db_on_start`).
 
+## Composable nodes
+
+A stages file can name a component container (`container:`) and give stages a
+`components:` list instead of, or as well as, `services:`. Each entry is loaded through
+the container's `load_node` service, with parameters flattened from its YAML file under
+`config_dir`, and unloaded on stop or recover, so a failed stage reloads only its own
+nodes while the process keeps running:
+
+```yaml
+container: /nav_master_container
+config_dir: app_nav_master/config
+stages:
+  - name: lidar
+    components:
+      - {package: ouster_ros, plugin: ouster_ros::OusterDriver, name: os_driver,
+         namespace: ouster, params: sensors/ouster.yaml, intra_process: true,
+         remaps: {/ouster/points: /ouster/points}}
+```
+
+`file_params: {param: path under src/}` sets a string parameter to a file's contents
+(robot_state_publisher's `robot_description` from the URDF). A `node` check
+(`{type: node, node: /nav_master_container}`) waits for a node to appear, which is how
+the container stage waits out the first-start compile.
+
+Every component also gets an implicit check that its node is in the graph. Pick the
+stages file with `BRINGUP_STAGES` (default `stages.yaml`, the separate-container stack):
+
+```bash
+BRINGUP_STAGES=stages_master.yaml docker compose -p navbringup up -d app_bringup_manager
+```
+
+Tested in `utils/manager_component_loading/`.
+
 ## Running it
 
 On the robot, from `src/`, once:

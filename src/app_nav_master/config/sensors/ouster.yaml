@@ -1,0 +1,16 @@
+# Ouster (ouster_ros::OusterDriver), node ouster/os_driver. Values are the ones the
+# rover ran with (app_lidar_ouster_ros/postcreatecommand.sh).
+/**:
+  ros__parameters:
+    sensor_hostname: '169.254.61.114'
+    lidar_mode: '1024x10'
+    timestamp_mode: 'TIME_FROM_ROS_TIME'
+    azimuth_window_start: 40000
+    azimuth_window_end: 320000
+    min_range: 0.3
+    organized: true
+    destagger: true
+    use_system_default_qos: true
+    # The driver is a lifecycle node; loaded as a component there is no launch file to
+    # configure/activate it, so it does that itself.
+    auto_start: true

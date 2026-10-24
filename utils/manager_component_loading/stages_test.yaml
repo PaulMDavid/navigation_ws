@@ -1,0 +1,12 @@
+# Test: the bringup manager loads/unloads a composable node into a running container.
+container: /test_container
+config_dir: app_bringup_manager/data  # sync_to_robot.sh never touches data/
+stages:
+  - name: rsp
+    title: robot_state_publisher as a component
+    timeout: 30
+    components:
+      - {package: robot_state_publisher, plugin: robot_state_publisher::RobotStatePublisher,
+         name: test_rsp, namespace: test, params: rsp_test.yaml}
+    checks:
+      - {type: tf, parent: test_base, child: test_link, static: true}

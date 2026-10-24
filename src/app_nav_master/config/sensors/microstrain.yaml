@@ -1,0 +1,14 @@
+# MicroStrain CV7 AHRS, as app_microstrain/config/cv7_ahrs.yml.
+/**:
+  ros__parameters:
+    port: /dev/ttyACM0
+    baudrate: 115200
+    pps_source: 0
+    filter_pps_source: 0
+    filter_declination_source: 1
+    filter_declination: 0.23
+    filter_heading_source: 1
+    filter_auto_heading_alignment_selector: 1
+    imu_data_rate: 500
+    filter_data_rate: 100
+    tf_mode: 0

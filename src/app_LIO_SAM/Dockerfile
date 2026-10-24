@@ -7,11 +7,13 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV ROS_DISTRO=${ROS_DISTRO}
 
 # g2o — build from source (not in Ubuntu 22.04 repos)
+# -j2: each g2o compile job needs ~3 GB; -j$(nproc) OOM-killed a 16 GB laptop, and
+# laptop builds are capped at 8 GB (utils/build_memory_cap)
 RUN git clone https://github.com/RainerKuemmerle/g2o.git /tmp/g2o \
     && cd /tmp/g2o \
     && mkdir build && cd build \
     && cmake .. -DCMAKE_BUILD_TYPE=Release \
-    && make -j$(nproc) \
+    && make -j2 \
     && make install \
     && rm -rf /tmp/g2o
 

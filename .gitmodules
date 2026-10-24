@@ -9,7 +9,8 @@
 	url = https://github.com/PaulMDavid/robot_localization_erc26.git
 [submodule "src/app_LIO_SAM/li_slam_ros2"]
 	path = src/app_LIO_SAM/li_slam_ros2
-	url = https://github.com/rsasaki0109/li_slam_ros2.git
+	url = https://github.com/PaulMDavid/li_slam_ros2.git
+	branch = composable
 [submodule "src/app_fast_calib/FAST-Calib"]
 	path = src/app_fast_calib/FAST-Calib
 	url = https://github.com/hku-mars/FAST-Calib.git

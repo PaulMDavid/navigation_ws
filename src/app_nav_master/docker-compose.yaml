@@ -1,0 +1,50 @@
+services:
+  app_nav_master:
+    build:
+      context: ..
+      dockerfile: app_nav_master/Dockerfile
+    container_name: app_nav_master_container
+    runtime: nvidia
+    privileged: true  # USB (ZED, F9P), /dev/ttyACM0 (CV7) without listing devices that may be absent
+    # Runaway memory (start-up build or a leaking node) kills this container, not the Jetson
+    mem_limit: 16g
+    memswap_limit: 16g
+    network_mode: host
+    ipc: host
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,video,utility
+      - ROS_DOMAIN_ID=0
+      - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+      - CYCLONEDDS_URI=file:///etc/cyclonedds.xml
+      # Source trees under src/ built at start; missing ones are skipped.
+      - >-
+        NAV_MASTER_PACKAGES=app_lidar_ouster_ros/ouster-ros
+        app_lidar_ouster_ros/ouster-sensor-msgs
+        app_zed2i_camera/zed-ros2-wrapper
+        app_LIO_SAM/li_slam_ros2
+        gpu_voxel_filter
+    volumes:
+      - ..:/workspace/src:ro
+      - nav_master_build:/workspace/build
+      - nav_master_install:/workspace/install
+      - /mnt/ssd/zed2i_camcalib:/usr/local/zed/settings
+      - /mnt/ssd/zed2i_resources:/usr/local/zed/resources
+      - /mnt/ssd/rtabmap_database:/root/Documents/RTAB-Map
+      - ../config/dds/cyclonedds.xml:/etc/cyclonedds.xml:ro
+      - ./entrypoint.sh:/entrypoint.sh:ro  # mounted so build limits apply without an image rebuild
+    # An empty container; the bringup manager loads components into it. Global
+    # --ros-args reach every node in the process, including the costmaps Nav2's servers
+    # create, so the rename and executor flag are scoped to the container node
+    # (ComponentManager), and the Nav2 params files are given here.
+    # NAV2_MAP_BACKEND: li_slam (rolling global costmap) or rtabmap (static /rtabmap/map).
+    command: >-
+      ros2 run rclcpp_components component_container_isolated --ros-args
+      -r ComponentManager:__node:=nav_master_container
+      -p nav_master_container:use_multi_threaded_executor:=true
+      --params-file /workspace/src/app_nav_master/config/nav2/nav2_params.yaml
+      --params-file /workspace/src/app_nav_master/config/nav2/global_costmap_${NAV2_MAP_BACKEND:-li_slam}.yaml
+
+volumes:
+  nav_master_build:
+  nav_master_install:

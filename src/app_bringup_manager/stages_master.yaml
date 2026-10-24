@@ -1,0 +1,129 @@
+# Bringup order for the app_nav_master stack: every node is a component loaded into one
+# process (/nav_master_container), so clouds and images move intra-process. Same rules
+# and check types as stages.yaml; component plugins, params and remaps are the table in
+# app_nav_master/README.md. Select with BRINGUP_STAGES=stages_master.yaml.
+#
+# Map backend: li_slam's graph (default, below). For rtabmap mapping-only instead,
+# replace the `mapping` stage's components with
+#   - {package: rtabmap_slam, plugin: rtabmap_slam::CoreWrapper, name: rtabmap,
+#      namespace: rtabmap, params: mapping/rtabmap.yaml,
+#      remaps: {scan_cloud: /ouster/points, odom: /odometry/slot}}
+# and start the container with NAV2_MAP_BACKEND=rtabmap.
+
+container: /nav_master_container
+config_dir: app_nav_master/config
+
+stages:
+  - name: preflight
+    title: Preflight
+    timeout: 10
+    checks:
+      - {type: mount, path: /mnt/ssd, hint: "NVMe not mounted; maps would go to the SD card"}
+      - {type: file, path: config/dds/cyclonedds.xml}
+
+  - name: container
+    title: Component container
+    services: [app_nav_master]
+    timeout: 1800  # first start compiles Ouster, ZED, li_slam (~15 min); later starts reuse the volumes
+    checks:
+      - {type: node, node: /nav_master_container, hint: "still compiling? see the container's log"}
+
+  - name: robot
+    title: Robot model (TF)
+    timeout: 30
+    components:
+      - {package: robot_state_publisher, plugin: robot_state_publisher::RobotStatePublisher,
+         name: robot_state_publisher, params: robot/robot_state_publisher.yaml,
+         file_params: {robot_description: app_robot_state_publisher/config/URDF/robot.urdf}}
+      - {package: tf2_ros, plugin: tf2_ros::StaticTransformBroadcasterNode,
+         name: gnss_static_tf, params: robot/gnss_tf.yaml}
+    checks:
+      - {type: topic_exists, topic: /robot_description}
+      - {type: tf, parent: chassis_link, child: os_sensor, static: true}
+
+  - name: lidar
+    title: Ouster lidar
+    timeout: 60
+    pre:
+      - {type: ping, host: 169.254.61.114, hint: "lidar not on the network: powered? spinning? cabled to the switch?"}
+    components:
+      - {package: ouster_ros, plugin: ouster_ros::OusterDriver, name: os_driver,
+         namespace: ouster, params: sensors/ouster.yaml, intra_process: true}
+    checks:
+      - {type: topic_rate, topic: /ouster/points, min_hz: 8}
+      - {type: topic_rate, topic: /ouster/imu, min_hz: 50}
+
+  # Odometry slot: odom -> chassis_link TF and /odometry/slot (li_slam now, FAST-LIVO2 later)
+  - name: odometry
+    title: Odometry (li_slam)
+    timeout: 60
+    components:
+      - {package: scanmatcher, plugin: ImageProjection, name: image_projection,
+         namespace: lio, params: odometry/li_slam/lidar_imu.yaml, intra_process: true}
+      - {package: scanmatcher, plugin: IMUPreintegration, name: imu_preintegration,
+         namespace: lio, params: odometry/li_slam/lidar_imu.yaml,
+         remaps: {odometry: /odometry/slot}}
+      - {package: scanmatcher, plugin: graphslam::ScanMatcherComponent, name: scan_matcher,
+         namespace: lio, params: odometry/li_slam/scanmatcher.yaml, intra_process: true,
+         remaps: {input_cloud: cloud_deskewed, odom: /odometry/slot}}
+      - {package: tf2_ros, plugin: tf2_ros::StaticTransformBroadcasterNode,
+         name: lio_base_to_chassis, params: odometry/li_slam/lio_base_to_chassis.yaml}
+    checks:
+      - {type: topic_rate, topic: /odometry/slot, min_hz: 5}
+      - {type: tf, parent: odom, child: chassis_link, max_age: 1.0, hint: "li_slam lost track? check /lio/cloud_deskewed"}
+
+  - name: mapping
+    title: Map (li_slam graph)
+    timeout: 30
+    components:
+      - {package: graph_based_slam, plugin: graphslam::GraphBasedSlamComponent,
+         name: graph_based_slam, namespace: lio, params: odometry/li_slam/graph_based_slam.yaml}
+      - {package: tf2_ros, plugin: tf2_ros::StaticTransformBroadcasterNode,
+         name: map_to_odom, params: odometry/li_slam/map_to_odom.yaml}
+    checks:
+      - {type: tf, parent: map, child: chassis_link, max_age: 1.0}
+
+  # Nav2's servers read their sections of nav2_params.yaml; the container also gets the
+  # file so the costmaps they create see it (app_nav_master/README.md).
+  - name: nav2
+    title: Nav2
+    timeout: 90
+    components:
+      - {package: nav2_controller, plugin: nav2_controller::ControllerServer,
+         name: controller_server, params: nav2/nav2_params.yaml, remaps: {cmd_vel: cmd_vel_nav}}
+      - {package: nav2_smoother, plugin: nav2_smoother::SmootherServer,
+         name: smoother_server, params: nav2/nav2_params.yaml}
+      - {package: nav2_planner, plugin: nav2_planner::PlannerServer,
+         name: planner_server, params: nav2/nav2_params.yaml}
+      - {package: nav2_behaviors, plugin: behavior_server::BehaviorServer,
+         name: behavior_server, params: nav2/nav2_params.yaml}
+      - {package: nav2_bt_navigator, plugin: nav2_bt_navigator::BtNavigator,
+         name: bt_navigator, params: nav2/nav2_params.yaml}
+      - {package: nav2_waypoint_follower, plugin: nav2_waypoint_follower::WaypointFollower,
+         name: waypoint_follower, params: nav2/nav2_params.yaml}
+      - {package: nav2_velocity_smoother, plugin: nav2_velocity_smoother::VelocitySmoother,
+         name: velocity_smoother, params: nav2/nav2_params.yaml,
+         remaps: {cmd_vel: cmd_vel_nav, cmd_vel_smoothed: cmd_vel}}
+      - {package: nav2_lifecycle_manager, plugin: nav2_lifecycle_manager::LifecycleManager,
+         name: lifecycle_manager_navigation, params: nav2/nav2_params.yaml}
+    checks:
+      - {type: lifecycle, service: /lifecycle_manager_navigation/is_active}
+      - {type: topic_rate, topic: /local_costmap/costmap, min_hz: 1}
+
+  - name: camera
+    title: ZED 2i
+    required: false
+    timeout: 60
+    components:
+      - {package: zed_components, plugin: stereolabs::ZedCamera, name: zed_node,
+         namespace: zed2i, params: sensors/zed2i.yaml, intra_process: true}
+    checks:
+      - {type: topic_exists, topic: /zed2i/zed_node/rgb/image_rect_color}
+
+  - name: rover
+    title: Rover drive link
+    required: false
+    timeout: 10
+    checks:
+      - {type: ping, host: 192.168.1.230}
+      - {type: subscribers, topic: /cmd_vel, min: 1, hint: "morpheus_control on the rover not running"}

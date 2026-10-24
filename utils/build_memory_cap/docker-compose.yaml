@@ -1,0 +1,4 @@
+services:
+  memhog:
+    build: .
+    image: build_memory_cap_test
