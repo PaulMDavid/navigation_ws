@@ -9,6 +9,11 @@ services:
     tty: true
     stdin_open: true
 
+    # SAPOS NTRIP login (config/sapos.env.example); optional, needs compose >= 2.24
+    env_file:
+      - path: ${SAPOS_ENV:-/etc/navws/sapos.env}
+        required: false
+
     # Mount your project directories
     #NOTE: remove  or add volumes as needed, and adjust paths if necessary
     volumes:
@@ -16,6 +21,7 @@ services:
       - ./data:/workspace/data
       - ./config:/workspace/config
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - /dev/serial:/dev/serial:ro
 
     environment:
       - ROS_DISTRO=humble

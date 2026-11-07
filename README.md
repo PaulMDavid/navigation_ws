@@ -16,7 +16,7 @@ how the SLAM back-end is swapped without touching anything downstream.
 | --- | --- |
 | `app_zed2i_camera` | ZED 2i stereo camera driver (Stereolabs ROS 2 wrapper) |
 | `app_lidar_ouster_ros` | Ouster LiDAR driver and rover-specific config |
-| `app_microstrain` | MicroStrain IMU driver |
+| `app_microstrain` | MicroStrain GQ7 GNSS/INS driver + SAPOS NTRIP client (CV7 config kept) |
 | `app_rtab_map` | RTAB-Map RGB-D SLAM — produces map and odometry |
 | `app_rtab_zed2i` | Combined RTAB-Map + ZED 2i composable launch (single-process, lower latency) |
 | `app_LIO_SAM` | LiDAR-inertial odometry and mapping (`li_slam_ros2`) |

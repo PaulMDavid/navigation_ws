@@ -3,6 +3,7 @@
 # - DDS socket buffer limits (60-ros2-dds.conf), applied now and at every boot
 # - persistent journal, so logs from before a freeze or reboot survive it
 # - teleop: /etc/navws/teleop.env and the navws-teleop boot unit
+# - SAPOS: /etc/navws/sapos.env (RTK login for app_microstrain)
 set -euo pipefail
 cd "$(dirname "$0")"
 
@@ -28,6 +29,11 @@ AP_SSID=orintwo-teleop
 AP_PASSWORD=
 ENV
   echo "created /etc/navws/teleop.env: set AP_PASSWORD before switching to phone"
+fi
+# SAPOS NTRIP login for app_microstrain's RTK corrections (one account per robot)
+if [[ ! -e /etc/navws/sapos.env ]]; then
+  install -m 0600 "$repo/src/app_microstrain/config/sapos.env.example" /etc/navws/sapos.env
+  echo "created /etc/navws/sapos.env: set SAPOS_USER and SAPOS_PASSWORD for RTK"
 fi
 sed "s|@REPO@|$repo|" navws-teleop.service > /etc/systemd/system/navws-teleop.service
 systemctl daemon-reload

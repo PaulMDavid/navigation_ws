@@ -1,0 +1,42 @@
+# 3DM-GQ7 dual-antenna GNSS/INS with SAPOS Berlin RTK corrections.
+#
+# Overrides on top of the driver's own params.yml (loaded first by the launch file).
+# The key must match the node name in app_microstrain.launch.py: under any other key
+# the driver silently runs on its defaults.
+microstrain_inertial_driver:
+  ros__parameters:
+    # Two USB cables: MAIN carries MIP data, AUX carries RTCM in and NMEA GGA out.
+    # by-id paths so the two can't swap when they enumerate in a different order.
+    port: /dev/serial/by-id/usb-Lord_Microstrain_Lord_Inertial_Sensor_0000_6284.207340-if00
+    aux_port: /dev/serial/by-id/usb-Lord_Microstrain_Lord_Inertial_Sensor_2-00_6284.207340-if00
+    baudrate: 115200
+    aux_baudrate: 115200
+
+    # RTK: corrections come from ntrip_client on /rtcm, the GGA it needs for the
+    # SAPOS VRS goes out on /nmea. Not the 3DM-RTK cellular dongle.
+    ntrip_interface_enable: true
+    rtk_dongle_enable: false
+
+    # Antenna lever arms, vehicle frame (x forward, y right, z down) from the GQ7's
+    # IMU origin, metres. PLACEHOLDERS: measure on the robot to the centimetre before
+    # trusting position or heading. With RTK, a lever arm error is the largest error.
+    gnss1_antenna_offset_source: 1
+    gnss1_antenna_offset: [0.0, -0.5, 0.0]
+    gnss2_antenna_offset_source: 1
+    gnss2_antenna_offset: [0.0, 0.5, 0.0]
+
+    imu_data_rate: 500
+    filter_data_rate: 50
+    gnss1_llh_position_data_rate: 2
+    gnss2_llh_position_data_rate: 2
+    filter_dual_antenna_heading_data_rate: 5
+
+    # Status topics for checking fixes and corrections (utils/gq7_rtk).
+    mip_gnss1_fix_info_data_rate: 1
+    mip_gnss2_fix_info_data_rate: 1
+    mip_gnss1_rf_error_detection_data_rate: 1
+    mip_gnss2_rf_error_detection_data_rate: 1
+    mip_filter_status_data_rate: 1
+    mip_filter_gnss_dual_antenna_status_data_rate: 1
+
+    tf_mode: 0
