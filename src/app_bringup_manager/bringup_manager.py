@@ -73,6 +73,11 @@ class Docker:
             raise RuntimeError(f'{WS_MOUNT} is not mounted into {SELF_CONTAINER}')
         # Host path of src/: relative paths in the compose file must resolve on the host.
         self.host_dir = mounts[WS_MOUNT]
+        # Compose resolves `include:` fragments against --project-directory, i.e. the host
+        # path, while reading them from inside this container; make that path exist here.
+        if not os.path.exists(self.host_dir):
+            os.makedirs(os.path.dirname(self.host_dir), exist_ok=True)
+            os.symlink(WS_MOUNT, self.host_dir)
         self.compose_file = os.path.join(WS_MOUNT, 'docker-compose.yaml')
         rc, out = self.compose('config', '--format', 'json')
         if rc != 0:
