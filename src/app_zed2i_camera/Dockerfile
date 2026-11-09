@@ -29,6 +29,7 @@ RUN apt-get update \
         ros-humble-nmea-msgs \
         ros-humble-geographic-msgs \
         ros-humble-image-transport \
+        ros-humble-compressed-image-transport \
         ros-humble-ament-cmake-auto \
         ros-humble-tf2 \
         ros-humble-tf2-ros \
