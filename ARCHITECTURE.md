@@ -14,7 +14,7 @@ chain reaches into anything else.
 flowchart LR
   zed["app_zed2i_camera<br/>ZED 2i stereo"]
   ouster["app_lidar_ouster_ros<br/>Ouster LiDAR"]
-  micro["app_microstrain<br/>CV7 AHRS · 500 Hz"]
+  micro["app_microstrain<br/>GQ7 GNSS/INS · SAPOS RTK"]
   rtab["app_rtab_map<br/>lidar SLAM · map + odom"]
   ekf["app_robot_localization<br/>EKF sensor fusion"]
   nav2["app_nav2<br/>planning + control"]
@@ -137,7 +137,7 @@ What each package puts on the bus, and what it takes off it.
 | --- | --- | --- |
 | `app_zed2i_camera` | — hardware | `/zed2i/zed_node/rgb/color/rect/image[/compressed]`<br>`/zed2i/zed_node/rgb/color/rect/camera_info`<br>`/zed2i/zed_node/depth/depth_registered`<br>`/zed2i/zed_node/point_cloud/cloud_registered`<br>`/zed2i/zed2i/odom` |
 | `app_lidar_ouster_ros` | — hardware | `/ouster/points`<br>`/ouster/imu` |
-| `app_microstrain` | — hardware | `/imu/data` (driver default) |
+| `app_microstrain` | — hardware (GQ7 MAIN + AUX)<br>`/nmea` → SAPOS, `/rtcm` ← SAPOS (internal) | `/imu/data` (500 Hz)<br>`/ekf/llh_position`, `/ekf/odometry_earth`<br>`/ekf/dual_antenna_heading`<br>`/gnss_1/llh_position`, `/gnss_2/llh_position`<br>`/mip/...` status |
 | `app_rtab_map` | `/ouster/points` → `scan_cloud`<br>`/ouster/imu` | `/rtabmap/map`<br>`/rtabmap/odom` (best effort)<br>TF `map → odom` |
 | `app_odom_relay` | `/rtabmap/odom` (best effort) | `/rtabmap/odom_reliable` (reliable, for Nav2) |
 | `app_rtab_zed2i` | `/ouster/points` → `scan_cloud`<br>`/ouster/imu` | same contract, composable node |

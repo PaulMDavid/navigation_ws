@@ -214,14 +214,19 @@ services:
     container_name: app_microstrain_container
     tty: true
     stdin_open: true
-    devices:
-      - /dev/ttyACM0:/dev/ttyACM0
+    # SAPOS NTRIP login for this robot (app_microstrain/config/sapos.env.example).
+    # Optional: without it the GQ7 runs without RTK corrections. Needs compose >= 2.24.
+    env_file:
+      - path: ${SAPOS_ENV:-/etc/navws/sapos.env}
+        required: false
     volumes:
       - ./app_microstrain:/workspace/src/app_microstrain
       - ./app_microstrain/data:/workspace/data
       - ./app_microstrain/config:/workspace/config
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
       - ./config/dds/cyclonedds.xml:/etc/cyclonedds.xml:ro
+      # gq7.yml opens MAIN and AUX by their by-id names; privileged gives the ttyACM nodes
+      - /dev/serial:/dev/serial:ro
     environment:
       - ROS_DISTRO=humble
       - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp

@@ -17,3 +17,7 @@ rosbags/
 # Teleop phone app: built by src/app_teleop_phone/build.sh, synced to the robot, not committed
 src/app_teleop_phone/www/rover-teleop.apk
 utils/teleop_link/results/
+
+# NTRIP/SAPOS credentials: per robot in /etc/navws/sapos.env, never committed
+sapos.env
+src/app_gnss/config/ntrip.yaml

@@ -13,6 +13,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-rosdep python3-colcon-common-extensions \
     ros-${ROS_DISTRO}-microstrain-inertial-driver \
     ros-${ROS_DISTRO}-microstrain-inertial-msgs \
+    ros-${ROS_DISTRO}-ntrip-client \
     ros-${ROS_DISTRO}-tf2-ros \
     ros-${ROS_DISTRO}-rmw-cyclonedds-cpp \
     && rm -rf /var/lib/apt/lists/*
