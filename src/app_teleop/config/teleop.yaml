@@ -9,7 +9,7 @@ teleop_mux:
     # Operator speed limits; no client can exceed them. Placeholders until checked
     # against morpheus_control's own limits on the rover.
     max_linear: 0.5            # m/s
-    max_angular: 1.0           # rad/s
+    max_angular: 0.1           # rad/s; tuned 2026-11-07 on the rover (1.0 steered ~5x too hard in Ackermann mode)
     nav_topic: /cmd_vel_auto   # Nav2's velocity smoother output
     out_topic: /cmd_vel        # morpheus_control on the rover subscribes here
 
