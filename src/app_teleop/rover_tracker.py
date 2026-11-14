@@ -5,7 +5,8 @@ side is rover_arming.py.
 
 robot_control boots in manual input (/manual_cmd_vel) + crab steering + stopped. It
 reads /joy (sensor_msgs/Joy, exactly 17 buttons):
-  button 1   input -> autonomous (/cmd_vel, what teleop_mux publishes)
+  button 1   input -> autonomous (/cmd_vel, what teleop_mux publishes); pressed only
+             while the tracked input is manual (a second press might switch back)
   button 16  toggles Ackermann-only <-> crab
   button 2   resume motion
 Each press is one Joy with that button = 1, then one all-zero Joy, `gap` seconds apart.
@@ -75,8 +76,12 @@ class RoverTracker:
         """Steps for `cmd` from the current tracked state: a press is (button, effects),
         a state change without a press is (None, effects)."""
         steering = self.state['steering']
+        # Button 1 is pressed only while the tracked input is manual: whether a second
+        # press returns robot_control to manual is unknown, so never risk flipping it.
+        to_auto = ((None, {'input': 'autonomous'}) if self.state['input'] == 'autonomous'
+                   else (BTN_INPUT_AUTO, {'input': 'autonomous'}))
         if cmd == 'input_auto':
-            return [(BTN_INPUT_AUTO, {'input': 'autonomous'})]
+            return [to_auto]
         if cmd in ('steer_ackermann', 'steer_crab'):
             want = cmd.split('_')[1]
             if steering == want:
@@ -87,7 +92,7 @@ class RoverTracker:
         if cmd == 'arm':
             steer = ((None, {'steering': 'ackermann'}) if steering == 'ackermann'
                      else (BTN_STEER_TOGGLE, {'steering': 'ackermann'}))
-            return [(BTN_INPUT_AUTO, {'input': 'autonomous'}), steer,
+            return [to_auto, steer,
                     (BTN_RESUME, {'motion': 'running'})]
         if cmd == 'reset':
             return [(None, dict(BOOT))]

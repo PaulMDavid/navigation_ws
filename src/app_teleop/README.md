@@ -87,17 +87,17 @@ publishes), 16 = toggle Ackermann-only, 2 = resume.
 
 | command | /joy presses | tracked state after |
 | --- | --- | --- |
-| `input_auto` | 1 | input = autonomous |
+| `input_auto` | 1 only if tracked input is manual | input = autonomous |
 | `steer_ackermann` | 16 only if tracked steering is crab | steering = ackermann |
 | `steer_crab` | 16 only if tracked steering is ackermann | steering = crab |
 | `resume` | 2 | motion = running |
-| `arm` | 1, 16 (if crab), 2 | autonomous / ackermann / running |
+| `arm` | 1 (if manual), 16 (if crab), 2 | autonomous / ackermann / running |
 | `reset` | none | boot defaults (manual / crab / stopped); use after robot_control restarts |
 
 - Each press is one Joy with that button = 1, then one all-zero Joy (8 axes, 17
   buttons), `press_gap` (0.2 s) between messages. Commands run one at a time; one that
   arrives mid-sequence waits in the queue (up to 8), and what it presses is decided
-  when it starts, so `steer_ackermann` twice presses 16 once.
+  when it starts, so `steer_ackermann` twice presses 16 once and `input_auto` twice presses 1 once.
 - Steering sets teleop_mux's `max_angular` through `/teleop_mux/set_parameters`:
   `ackermann_max_angular` (1.0; 0.1 steers only ~7°) or `crab_max_angular` (0.1).
   Every `steer_*`, `arm` and `reset` sends it, also when no press was needed, and it is

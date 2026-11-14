@@ -95,8 +95,18 @@ def test_arm_when_already_ackermann_skips_16():
 
 def test_arm_twice_does_not_toggle_back():
     tr = fresh(['arm', 'arm'])
-    assert pressed(run(tr)) == [1, 16, 2, 1, 2]
+    assert pressed(run(tr)) == [1, 16, 2, 2]
     assert tr.state['steering'] == 'ackermann'
+
+
+def test_input_auto_idempotent():
+    # button 1 only while tracked input is manual: a second press might flip it back
+    tr = fresh(['input_auto', 'input_auto', 'arm'])
+    assert pressed(run(tr)) == [1, 16, 2]
+    assert tr.state['input'] == 'autonomous'
+    tr.submit('reset', 'phone', 'phone')
+    tr.submit('input_auto', 'phone', 'phone')
+    assert pressed(run(tr, 20, 30)) == [1]
 
 
 def test_steering_events_for_max_angular():
