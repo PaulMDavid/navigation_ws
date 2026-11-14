@@ -11,6 +11,7 @@ measures, how to run it, and the last dated result.
 | `manager_component_loading/` | bringup manager loads/unloads components into a container |
 | `nav_master_startup/` | app_nav_master first start: build, memory, plugins present |
 | `odom_rate_hang/` | reproduce the freeze at higher odometry rates, freeze-proof logging |
+| `phone_ctl/` | phone one-button bring-up: phone_ctl.sh JSON steps, rover-wheels MD80 retry, zero, command parsing (fakes) |
 | `perf_compare/` | CPU/RAM/GPU/power and topic rates of a running stack |
 | `rover_arming/` | phone/ground arming of robot_control: /joy presses, tracked state, mux max_angular |
 | `nav_relay/` | phone Autonav relay: nav_cmd → Nav2 action / bringup, map PNG + meta, nav state (fake Nav2/SLAM) |

@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+[[ -e $FAKE/ping_fail ]] && { echo "1 packets transmitted, 0 received"; exit 1; }
+echo "64 bytes from ${*: -1}: icmp_seq=1 ttl=64 time=0.3 ms"

@@ -1,0 +1,19 @@
+# systemd user unit, installed by install.sh into ~/.config/systemd/user/
+# (@DIR@ is replaced with this folder's path on the rover). Not enabled at boot: the
+# phone's Up (scripts/phone_ctl.sh on orintwo) starts it. Replaces the `wheels` tmux session.
+[Unit]
+Description=Rover wheels controller (morpheus_control) with MD80 auto-retry
+
+[Service]
+Type=simple
+EnvironmentFile=-%h/.config/rover-wheels.env
+UnsetEnvironment=CYCLONEDDS_URI
+ExecStart=@DIR@/rover_wheels_run.sh
+# SIGINT to the runner, which hands it to ros2 launch; SIGKILL to the rest after 20 s
+KillMode=mixed
+KillSignal=SIGINT
+TimeoutStopSec=20
+Restart=no
+
+[Install]
+WantedBy=default.target

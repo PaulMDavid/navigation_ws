@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# fake ssh: records the options, then runs the rover's real rover_wheels_ctl.sh with the
+# remote command as SSH_ORIGINAL_COMMAND, as the restricted key would.
+source "$(dirname "$0")/_ev"
+printf '%s\n' "$*" >> "$FAKE/ssh.log"
+if [[ -e $FAKE/ssh_fail ]]; then echo "ssh: connect to host 192.168.1.230 port 22: Connection timed out" >&2; exit 255; fi
+args=("$@"); cmd=${args[-1]}
+SSH_ORIGINAL_COMMAND=$cmd exec "$ROVER_CTL"

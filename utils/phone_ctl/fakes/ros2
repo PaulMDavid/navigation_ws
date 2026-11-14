@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# fake `ros2 launch morpheus_control …`: holds $MD80_PORT open like the controller.
+# The first $FAKE_FAIL_LAUNCHES launches print candle's "Failed to add MD80 with ID:
+# $FAKE_FAIL_ID"; later ones add 11..14. Runs until SIGINT.
+source "$(dirname "$0")/_ev"
+n=$(( $(cat "$FAKE/launches" 2>/dev/null || echo 0) + 1 )); echo $n > "$FAKE/launches"
+[[ " $* " == *" launch morpheus_control morpheus_control.launch.py "* ]] || { echo "fake ros2: unexpected $*" >&2; exit 2; }
+[[ -z ${CYCLONEDDS_URI+x} ]] || ev "CYCLONEDDS_URI set: $CYCLONEDDS_URI"
+exec 3<>"$MD80_PORT"
+ev "launch $n start"
+trap 'ev "launch $n stop"; exit 0' INT
+trap 'ev "launch $n TERM"; exit 143' TERM
+echo "[INFO] [launch]: All log files can be found below /tmp"
+echo "[controller-1] [CANDLE] Pinging drives..."
+sleep 0.3
+if (( n <= ${FAKE_FAIL_LAUNCHES:-0} )); then
+  echo "[controller-1] [CANDLE] Failed to add MD80 with ID: ${FAKE_FAIL_ID:-11} [FAILED]"
+elif [[ -z ${FAKE_NO_ADDED:-} ]]; then
+  for id in 11 12 13 14; do echo "[controller-1] [CANDLE] Added MD80 with ID: $id [OK]"; sleep 0.05; done
+fi
+[[ -n ${FAKE_EXIT_AFTER:-} ]] && { sleep "$FAKE_EXIT_AFTER"; ev "launch $n crashed"; exit 1; }
+while :; do sleep 0.1; done

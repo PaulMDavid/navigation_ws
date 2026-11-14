@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# fake `systemctl --user` for rover-wheels.service: runs $FAKE_RUNNER in the background
+source "$(dirname "$0")/_ev"
+[[ $1 == --user ]] && shift
+verb=$1; [[ $verb == --quiet ]] && verb=$2
+[[ $* == *--quiet* ]] && quiet=1 || quiet=0
+d=$FAKE/unit
+mkdir -p "$d"
+alive() { [[ -f $d/pid ]] && kill -0 "$(cat "$d/pid")" 2>/dev/null; }
+case $1 in
+  start)
+    ev "systemctl start"
+    alive && exit 0
+    rm -f "$d/rc"
+    setsid bash -c 'env --default-signal=INT "$0" & echo $! > "$1/pid"; wait $!; echo $? > "$1/rc"' "$FAKE_RUNNER" "$d" \
+      </dev/null >>"$FAKE/runner.out" 2>&1 9>&- &
+    for _ in $(seq 50); do [[ -f $d/pid ]] && break; sleep 0.05; done ;;
+  stop)
+    ev "systemctl stop"
+    if alive; then
+      kill -INT "$(cat "$d/pid")"
+      for _ in $(seq 200); do alive || break; sleep 0.1; done
+    fi ;;
+  is-active)
+    if alive; then s=active; elif [[ -f $d/rc && $(cat "$d/rc") != 0 ]]; then s=failed; else s=inactive; fi
+    (( quiet )) || echo "$s"
+    [[ $s == active ]] ;;
+  reset-failed) rm -f "$d/rc" ;;
+  daemon-reload) ;;
+esac
