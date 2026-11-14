@@ -9,7 +9,7 @@ foxglove_bridge:
     port: 8765
     address: 0.0.0.0
     topic_whitelist: ['.*']
-    client_topic_whitelist: ['^/teleop/phone/(cmd_vel|set_mode)$']
+    client_topic_whitelist: ['^/teleop/phone/(cmd_vel|set_mode|rover_cmd)$']
     # no parameters capability: a client must not be able to raise teleop_mux's limits
     capabilities: [clientPublish, connectionGraph]
     service_whitelist: ['(?!)']
