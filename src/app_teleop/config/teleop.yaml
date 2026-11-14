@@ -22,3 +22,15 @@ teleop_camera:
     max_rate: 10.0             # Hz to the phone
     max_width: 960             # px; wider frames are downscaled and re-encoded
     jpeg_quality: 60
+
+# rover_arming: robot_control's mode switches (/joy presses) from the phone or ground PC,
+# and its tracked state on /teleop/rover_state (README "Arming the rover")
+rover_arming:
+  ros__parameters:
+    press_gap: 0.2             # s between Joy messages (press, all-zero, next press, ...)
+    state_rate: 4.0            # Hz, /teleop/rover_state
+    mux_state_timeout: 2.0     # s without /teleop/state -> active source unknown, commands refused
+    mux_node: /teleop_mux      # its set_parameters service sets max_angular on steering change
+    ackermann_max_angular: 1.0 # rad/s; 0.1 steers only ~7 deg in Ackermann
+    crab_max_angular: 0.1      # rad/s; same as teleop_mux max_angular above
+    joy_topic: /joy            # robot_control on the rover reads it

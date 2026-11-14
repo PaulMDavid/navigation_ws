@@ -28,6 +28,7 @@
           "^/robot_description$",            // URDF for RViz robot model
           "^/cmd_vel$",                      // commanded velocity (viz only)
           "^/teleop/state$",                 // teleop_mux mode, source, deadman ages
+          "^/teleop/rover_state$",           // rover_arming: robot_control state (tracked)
           "^/bringup/status$",               // bringup panel
           "^/bringup/logs$",
         ],
@@ -39,6 +40,7 @@
           "^/goal_pose$",                    // simple goal topic (fallback)
           "^/teleop/ground/cmd_vel$",        // ground-station teleop (TELEOP_SOURCE=ground)
           "^/teleop/ground/set_mode$",
+          "^/teleop/ground/rover_cmd$",      // rover_arming commands
           "^/bringup/log_request$",
         ],
 

@@ -1,0 +1,34 @@
+============================= test session starts ==============================
+platform linux -- Python 3.10.12, pytest-6.2.5, py-1.10.0, pluggy-0.13.0 -- /usr/bin/python3
+rootdir: /test/rover_arming
+plugins: ament-copyright-0.12.15, ament-flake8-0.12.15, ament-lint-0.12.15, ament-pep257-0.12.15, ament-xmllint-0.12.15, launch-testing-1.0.15, launch-testing-ros-0.19.14, colcon-core-0.21.3
+collecting ... collected 26 items
+
+test_tracker.py::test_joy_message_shape PASSED                           [  3%]
+test_tracker.py::test_each_command_from_boot[input_auto-presses0-state0] PASSED [  7%]
+test_tracker.py::test_each_command_from_boot[steer_ackermann-presses1-state1] PASSED [ 11%]
+test_tracker.py::test_each_command_from_boot[steer_crab-presses2-state2] PASSED [ 15%]
+test_tracker.py::test_each_command_from_boot[resume-presses3-state3] PASSED [ 19%]
+test_tracker.py::test_each_command_from_boot[arm-presses4-state4] PASSED [ 23%]
+test_tracker.py::test_each_command_from_boot[reset-presses5-state5] PASSED [ 26%]
+test_tracker.py::test_every_press_followed_by_all_zero PASSED            [ 30%]
+test_tracker.py::test_gap_between_messages PASSED                        [ 34%]
+test_tracker.py::test_steer_idempotent PASSED                            [ 38%]
+test_tracker.py::test_arm_when_already_ackermann_skips_16 PASSED         [ 42%]
+test_tracker.py::test_arm_twice_does_not_toggle_back PASSED              [ 46%]
+test_tracker.py::test_steering_events_for_max_angular PASSED             [ 50%]
+test_tracker.py::test_steering_event_right_after_its_press PASSED        [ 53%]
+test_tracker.py::test_queued_not_interleaved PASSED                      [ 57%]
+test_tracker.py::test_source_gating PASSED                               [ 61%]
+test_tracker.py::test_reset_after_states PASSED                          [ 65%]
+test_tracker.py::test_queue_limit PASSED                                 [ 69%]
+test_tracker.py::test_report_json PASSED                                 [ 73%]
+test_node.py::test_boot_state_both_domains PASSED                        [ 76%]
+test_node.py::test_state_rate PASSED                                     [ 80%]
+test_node.py::test_ground_rejected_while_phone_active PASSED             [ 84%]
+test_node.py::test_phone_arm PASSED                                      [ 88%]
+test_node.py::test_steer_idempotent_and_crab_limit PASSED                [ 92%]
+test_node.py::test_reset PASSED                                          [ 96%]
+test_node.py::test_ground_accepted_after_source_switch PASSED            [100%]
+
+============================= 26 passed in 23.96s ==============================
