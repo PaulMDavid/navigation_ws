@@ -48,6 +48,37 @@ Nav2's velocity smoother publishes `/cmd_vel_auto` instead of `/cmd_vel`, and
 `/cmd_vel` (`stages_master.yaml`, `app_nav2/launch/navigation.launch.py`). Without this
 container running, Nav2's commands reach nothing; the bringup's rover stage checks for it.
 
+## Gears and speed-dependent steering (stick input, #37)
+
+The phone app (1.7+) sends a normalized stick instead of a `Twist` in m/s:
+
+| Topic (phone domain) | Type | Meaning |
+| --- | --- | --- |
+| `/teleop/<source>/stick` | `geometry_msgs/Twist` | `linear.x` throttle, `angular.z` steer (+ = left), both in [-1, 1], 10 Hz (deadman as for `cmd_vel`) |
+| `/teleop/<source>/gear` | `std_msgs/String` | `up`, `down`, or `1`..`4` |
+
+`teleop_drive.py` turns it into `/cmd_vel` at 20 Hz:
+
+- target speed = throttle × `gear_speeds[gear]` (0.15 / 0.30 / 0.50 / 0.80 m/s), ramped
+  at `accel` 0.3 m/s² up and `decel` 0.5 m/s² down; reversing brakes to 0 first.
+- curvature κ = steer × κ_max(v), κ_max = min(1 / `min_turn_radius`, `a_lat_max` / v²),
+  so lateral acceleration stays ≤ `a_lat_max` (0.5 m/s²). Steer moves at most
+  `steer_rate` 2.0 /s. ω = v·κ, then the `max_angular` clamp, then `angular_sign`.
+- Deadman, STOP, mode or source change: speed and steer jump to 0 at once (no ramp).
+  STOP and source change also put the gear back to 1; so does boot.
+- For each source the newer of `stick` and `cmd_vel` wins, so the ground PC's plain Twist
+  still works.
+- `angular_sign`: robot_control's Ackermann-only mode negates `angular.z`, so
+  `rover_arming` sets −1 there and +1 in crab (alongside `max_angular` 1.0 / 0.1).
+
+`/teleop/state` gains `gear`, `gears`, `input` (`stick` | `cmd_vel` | null), `v_target`,
+`kappa_max`, `steer_limited`, `a_lat_max`, and `speed_meas` / `speed_meas_age` from
+`/odom_wheels` (null if older than `odom_timeout`). The app shows km/h from `speed_meas`
+and refuses to drive when `gear` is missing (old mux).
+
+All values are conservative placeholders, to be tuned in the field (#37).
+`min_turn_radius` 1.0 m is a guess; measure the real Ackermann lock.
+
 ## Camera for the phone
 
 `teleop_camera.py` (compose service `app_teleop_camera`, phone source only) relays a
@@ -663,4 +694,5 @@ camera page is open. `sudo scripts/teleop_source.sh ground` goes back to eduroam
 and watcher on loopback DDS. `utils/teleop_link/`: the laptop stands in for orintwo and both links are driven
 end to end, including the deadman and the bridge loophole. `utils/rover_arming/`: the
 /joy press sequencing and tracked state. `utils/nav_relay/`: the Autonav relay against fake
-SLAM / Nav2 / bringup manager.
+SLAM / Nav2 / bringup manager. `utils/teleop_gears/`: gears, ramp, curvature limit
+(pure Python) and the real `teleop_mux` driven over the phone domain.
