@@ -140,14 +140,212 @@ Parameters: `rover_arming` in [`config/teleop.yaml`](config/teleop.yaml). Tests:
 - [ ] Decide whether the rover should publish its real state later instead of the
   spoof.
 
+## Autonav relay (nav_relay)
+
+> ⚠️ **Untested on hardware.** Only the unit and loopback-DDS tests in
+> `utils/nav_relay` have run, against fake SLAM / Nav2 / bringup manager (checklist
+> below).
+
+`nav_relay.py` (compose service `app_nav_relay`, container `app_nav_relay_container`,
+phone source only) is the backend of the app's **Autonav** page (#30). It lives in the
+main domain and the phone domain (`phone_domain.py`): it takes Nav2 goals and bringup
+commands from the phone, and hands the phone the SLAM map, the robot pose, the plan and
+Nav2's state. The phone sees nothing else of Nav2.
+
+| topic | type | dir | domain(s) | QoS |
+| --- | --- | --- | --- | --- |
+| `/teleop/phone/nav_cmd` | `std_msgs/String` (JSON) | phone → orintwo | phone | reliable, volatile, depth 10 |
+| `/teleop/nav/map` | `sensor_msgs/CompressedImage` (PNG) | orintwo → phone | both | reliable, **transient local**, depth 1 |
+| `/teleop/nav/map_meta` | `std_msgs/String` (JSON) | orintwo → phone | both | reliable, **transient local**, depth 1 |
+| `/teleop/nav/state` | `std_msgs/String` (JSON) | orintwo → phone | both | reliable, volatile, depth 10 |
+
+What it uses in the main domain: the map `map_topic` (`/rtabmap/map`, what Nav2's global
+costmap static layer reads), TF `map → chassis_link` (Nav2's `global_frame` /
+`robot_base_frame`), Nav2's global plan `/plan` (`nav_msgs/Path`), the
+`NavigateToPose` action `/navigate_to_pose`, `app_bringup_manager`'s `/bringup/go`,
+`/bringup/stop` (`std_srvs/Trigger`) and `/bringup/status`, and teleop_mux's
+`/teleop/state` (for the source rule).
+
+### Conventions
+
+- **Frame:** every x, y, yaw in these messages is in the `map` frame (`frame_id` says so),
+  metres and radians.
+- **Yaw:** REP-103, rotation about +z, **counter-clockwise from the map's +x axis**,
+  radians, in (−π, π] when sent by orintwo (the phone may send any finite value).
+  0 = facing +x, π/2 = facing +y.
+- Times: `stamp` values are ROS time on orintwo (Unix seconds, float). `*_age` values are
+  seconds before the state message's `stamp`.
+- Floats in the state are rounded to 0.001 (plan points to 0.01 m).
+
+### Phone → orintwo: `/teleop/phone/nav_cmd`
+
+One JSON object per message:
+
+| JSON | does |
+| --- | --- |
+| `{"cmd": "goal", "x": <number>, "y": <number>, "yaw": <number>}` | sends a Nav2 `NavigateToPose` goal at (x, y) facing yaw, `map` frame. A new goal preempts the running one (Nav2 does this); the state then follows the new goal only. |
+| `{"cmd": "cancel"}` | cancels the goal this relay sent (also while Nav2 has not accepted it yet). |
+| `{"cmd": "bringup_go"}` | calls `/bringup/go` |
+| `{"cmd": "bringup_stop"}` | calls `/bringup/stop` |
+
+- `cmd` is case-insensitive. `x`, `y`, `yaw` must be finite JSON numbers (not strings,
+  not booleans); all three are required.
+- **Accepted only while teleop_mux's active source is `phone`** (`source` in
+  `/teleop/state`; if that is older than `mux_state_timeout`, 2 s, everything is refused).
+  This applies to all four commands, `cancel` included. Mux STOP
+  (`/teleop/phone/set_mode` `stop`) works from every source and stops the rover in any
+  case.
+- A goal does **not** change the mux mode. The app sends `set_mode autonomous` before the
+  goal, otherwise Nav2 plans and "drives" but teleop_mux never passes its `/cmd_vel_auto`
+  on.
+- A refused command leaves the state as it was and sets `rejected` in the next
+  `/teleop/nav/state` (published right away). Reasons (exact text):
+  - `nav_cmd refused: not JSON: '…'`, `nav_cmd refused: expected a JSON object with a "cmd" string`,
+    `nav_cmd refused: unknown cmd '…'`, `nav_cmd refused: goal needs finite numbers x, y, yaw; <k> = <v>`
+  - `<cmd> refused: active source is <source>`, `<cmd> refused: teleop_mux source unknown (no /teleop/state)`
+  - `goal refused: Nav2 action server /navigate_to_pose not available`
+  - `cancel refused: no active goal`
+  - `bringup_go refused: /bringup/go not available (app_bringup_manager running?)` (same for stop)
+
+### orintwo → phone: the map
+
+`/teleop/nav/map` (`sensor_msgs/CompressedImage`) + `/teleop/nav/map_meta`
+(`std_msgs/String`, JSON). Both are latched (transient local), so a client that
+subscribes late gets the last map at once. They are re-sent only when the picture changes
+(the downsampled PNG or its meta differ), at most `map_max_rate` (0.5 Hz); a change in
+between goes out when the interval is over, so the latched one is always the newest.
+meta is published just before its image.
+
+CompressedImage: `format: "png"`, `header.frame_id: "map"`, `header.stamp` = the meta's
+`stamp` (pair them by that, or take the latest of each). `data` is an 8-bit greyscale
+PNG:
+
+| pixel value | meaning |
+| --- | --- |
+| 254 | free (OccupancyGrid 0..`free_thresh` 25) |
+| 0 | occupied (≥ `occupied_thresh` 65) |
+| 205 | unknown (−1 and 26..64) |
+
+(map_server's trinary values, so it looks like RViz / a saved map.)
+
+meta JSON, all keys always present:
+
+```json
+{"seq": 3, "stamp": 1763130000.12, "map_stamp": 1763129999.80, "frame_id": "map",
+ "resolution": 0.15, "width": 834, "height": 600,
+ "origin": {"x": -60.0, "y": -40.0, "yaw": 0.0},
+ "downsample": 3, "source_resolution": 0.05, "source_width": 2500, "source_height": 1800,
+ "encoding": "png", "values": {"free": 254, "occupied": 0, "unknown": 205}, "bytes": 67812}
+```
+
+| key | type | |
+| --- | --- | --- |
+| `seq` | int | 1, 2, … per map sent since the relay started |
+| `stamp` | float | when the relay sent it (= image `header.stamp`) |
+| `map_stamp` | float | the source OccupancyGrid's header stamp |
+| `frame_id` | string | `"map"` |
+| `resolution` | float | m per **PNG pixel** (= `source_resolution × downsample`) |
+| `width`, `height` | int | PNG size in pixels, each ≤ `map_max_size` (1000) |
+| `origin` | {x, y, yaw} floats | the map's origin = the **outer corner of the bottom-left cell** (lowest x, lowest y), in `map`; yaw of the grid (0 for rtabmap) |
+| `downsample` | int | cells per pixel side, `ceil(max(source_width, source_height) / 1000)` |
+| `source_*` | float / int | the SLAM grid before downsampling |
+| `encoding` | string | `"png"` |
+| `values` | {free, occupied, unknown} ints | the pixel values above |
+| `bytes` | int | PNG size |
+
+**Pixel ↔ map.** PNG row 0 is the **top = highest y** (the grid's rows are flipped, as in
+a saved map), column 0 is the lowest x. With `r = resolution`, `(ox, oy, θ) = origin`, the
+centre of pixel (column u, row v) is
+
+```
+gx = (u + 0.5) * r                  # in the grid's own axes
+gy = (height - v - 0.5) * r
+x  = ox + gx*cos θ - gy*sin θ       # in map; θ = 0 → x = ox + gx, y = oy + gy
+y  = oy + gx*sin θ + gy*cos θ
+```
+
+and the other way (θ = 0): `u = (x - ox) / r`, `v = height - (y - oy) / r` (pixel edges).
+Downsampling: each `downsample × downsample` block of cells becomes one pixel, occupied if
+any cell in it is occupied, else free if any is free, else unknown. The grid is padded
+with unknown on its +x / +y side to a multiple of `downsample`, so `origin` is unchanged
+and `width × resolution` may exceed the source map's extent by up to one pixel.
+
+### orintwo → phone: `/teleop/nav/state`
+
+JSON at `state_rate` (5 Hz), plus right after every command and every goal result. All
+keys are always present; `null` where noted.
+
+```json
+{"stamp": 1763130001.2, "frame_id": "map",
+ "pose": {"x": 1.5, "y": -2.0, "yaw": 0.7, "age": 0.03}, "pose_error": null,
+ "nav2_ready": true,
+ "status": "navigating", "reason": null,
+ "goal": {"x": 3.0, "y": 4.0, "yaw": 1.0, "age": 2.4},
+ "distance_remaining": 7.5, "eta": 15.0, "navigation_time": 2.0, "recoveries": 0,
+ "plan": [[1.5, -2.0], [1.55, -1.97], [3.0, 4.0]], "plan_age": 0.4,
+ "bringup": {"overall": "ready", "stamp": 1763130000.9, "age": 0.3,
+             "stages": [{"name": "slam", "title": "SLAM (rtabmap)", "state": "ready",
+                         "required": true, "message": "",
+                         "checks": [{"label": "TF map → chassis_link", "ok": true,
+                                     "value": "0.05 s old (max 1.0)", "hint": ""}]}]},
+ "bringup_reply": {"cmd": "bringup_go", "success": true, "message": "bringup queued", "age": 5.1},
+ "last_cmd": "goal", "last_cmd_age": 2.4, "rejected": null}
+```
+
+| key | type | |
+| --- | --- | --- |
+| `stamp` | float | ROS time when published |
+| `frame_id` | string | `"map"`: frame of pose, goal and plan |
+| `pose` | {x, y, yaw, age} or null | robot = TF `map → chassis_link`, latest; `age` = s since that transform's stamp. `null` while TF has no such transform (SLAM not up) |
+| `pose_error` | string or null | first line of the TF error when `pose` is null |
+| `nav2_ready` | bool | the `/navigate_to_pose` action server is there |
+| `status` | string | `"idle"` (no goal sent since the relay started), `"navigating"`, `"succeeded"`, `"aborted"`, `"canceled"`: the goal this relay sent last. Goals sent by others (RViz, ground station) are not tracked. |
+| `reason` | string or null | why, for `status`: `"waiting for Nav2 to accept"` (navigating, not yet accepted), `"cancel requested"` (navigating, cancel sent, no result yet), `"Nav2 rejected the goal"` / `"Nav2 aborted the goal"` / `"Nav2 ended the goal with status <n>"` / `"sending the goal failed: …"` / `"no result from Nav2: …"` (aborted); `null` otherwise. Humble's NavigateToPose result has no error code, so there is no finer reason for an abort. |
+| `goal` | {x, y, yaw, age} or null | the last goal sent (stays after it ended, so the app can show where it went); `age` = s since sent. `null` before the first goal. |
+| `distance_remaining` | float or null | m, Nav2 feedback; `null` unless `status` is `"navigating"` and feedback has arrived |
+| `eta` | float or null | s, Nav2's `estimated_time_remaining`; same rule |
+| `navigation_time` | float or null | s since Nav2 started the goal; same rule |
+| `recoveries` | int or null | Nav2's `number_of_recoveries`; same rule |
+| `plan` | [[x, y], …] | Nav2's global plan (`/plan`), first and last point kept, evenly thinned to ≤ `plan_max_points` (200). `[]` when no plan newer than `plan_max_age` (3 s) exists. Shows any plan Nav2 is following, also one from a goal sent elsewhere. |
+| `plan_age` | float or null | s since that plan arrived; `null` when `plan` is `[]` |
+| `bringup` | object or null | the last `/bringup/status` from app_bringup_manager, cut down: `overall` (`"idle"`, `"bringing_up"`, `"ready"`, `"failed"`, `"stopping"`), its `stamp`, `age` (s since the relay received it; the manager publishes at 1 Hz, so > 3 s = manager gone), `stages` = [{`name`, `title`, `state` (`pending` `starting` `ready` `warn` `failed` `blocked` `stopped`), `required`, `message` (the reason when not ready), `checks` = [{`label`, `ok` (true/false/null = measuring), `value`, `hint`}]}]. Logs, events and containers are left out. `null` until the manager has been seen. |
+| `bringup_reply` | {cmd, success, message, age} or null | the manager's answer to the last `bringup_go`/`bringup_stop` (`"bringup queued"` / `"stop queued"`; the real progress is in `bringup`) |
+| `last_cmd` | string or null | the last command name received (`goal`, `cancel`, `bringup_go`, `bringup_stop`), refused or not; unparseable messages don't count |
+| `last_cmd_age` | float or null | s since it arrived |
+| `rejected` | string or null | why the most recent message was refused (texts above); `null` once one is accepted |
+
+Green / red for the app: Nav2 stage up = `bringup.stages[name == "nav2"].state == "ready"`
+(or `bringup.overall == "ready"` for the whole stack) and `nav2_ready`.
+
+### Notes
+
+- foxglove_bridge's `client_topic_whitelist` allows `/teleop/phone/nav_cmd` (it is
+  ignored by 3.6.0 anyway; the phone domain is the real gate).
+- A map PNG is 10–150 KiB (`utils/nav_relay` bench); foxglove_bridge drops messages for
+  a client whose `send_buffer_limit` (1 MB) is full, e.g. while the camera page streams.
+  A dropped map isn't re-sent until the map changes: the app can unsubscribe and
+  subscribe `/teleop/nav/map` again to get the latched one.
+- The map work (downsample + PNG) runs at most every 2 s, ~60–150 ms on the laptop for
+  2500×1800 to 4000×4000 maps; the relay subscribes to the full map, so its DDS traffic
+  is one copy of every map rtabmap publishes.
+- Parameters: `nav_relay` in [`config/teleop.yaml`](config/teleop.yaml). Tests:
+  `utils/nav_relay/`.
+
+**To do on hardware (@PaulMDavid):**
+- [ ] With the Nav2 stack up on orintwo: map shows, robot pose and plan line up with RViz.
+- [ ] Tap goal + heading → GO → rover drives there; CANCEL stops it.
+- [ ] NAV UP from the phone brings the stages up green.
+- [ ] Map relay doesn't hurt SLAM/Nav2 rates on orintwo.
+
 ## Why the phone has its own DDS domain
 
 foxglove_bridge 3.6.0 (current Humble release) ignores `client_topic_whitelist`: a
 WebSocket client can make it publish any topic, `/cmd_vel` included. So
 app_foxglove_bridge runs in DDS domain `TELEOP_PHONE_DOMAIN` (51). Only teleop_mux,
-teleop_camera and rover_arming are in both domains: teleop_mux reads `/teleop/phone/*` there and mirrors
-`/teleop/state` there, teleop_camera publishes `/teleop/camera/compressed` there, and rover_arming
-reads `/teleop/phone/rover_cmd` and mirrors `/teleop/rover_state` there. Whatever a client publishes stays in domain 51.
+teleop_camera, rover_arming and nav_relay are in both domains: teleop_mux reads `/teleop/phone/*` there and mirrors
+`/teleop/state` there, teleop_camera publishes `/teleop/camera/compressed` there, rover_arming
+reads `/teleop/phone/rover_cmd` and mirrors `/teleop/rover_state` there, and nav_relay reads
+`/teleop/phone/nav_cmd` and publishes `/teleop/nav/*` there. Whatever a client publishes stays in domain 51.
 To give the phone more topics later, relay them into domain 51 (extend teleop_mux, or a
 zenoh-bridge-ros2dds pair with an allowlist).
 
@@ -161,7 +359,7 @@ installs `navws-teleop.service`, which applies it at boot).
 | --- | --- | --- |
 | orintwo Wi-Fi | eduroam (client) | access point `orintwo-teleop`, 10.42.0.1/24 |
 | who drives in manual | ground-station PC, Zenoh | phone app, foxglove_bridge |
-| containers | app_teleop, app_rover_arming, app_zenoh_bridge | + app_foxglove_bridge, app_teleop_phone, app_teleop_camera |
+| containers | app_teleop, app_rover_arming, app_zenoh_bridge | + app_foxglove_bridge, app_teleop_phone, app_teleop_camera, app_nav_relay |
 
 ```bash
 # on orintwo, over the wired link (192.168.1.210), never over Wi-Fi:
@@ -210,4 +408,5 @@ camera page is open. `sudo scripts/teleop_source.sh ground` goes back to eduroam
 
 `utils/teleop_link/`: the laptop stands in for orintwo and both links are driven
 end to end, including the deadman and the bridge loophole. `utils/rover_arming/`: the
-/joy press sequencing and tracked state.
+/joy press sequencing and tracked state. `utils/nav_relay/`: the Autonav relay against fake
+SLAM / Nav2 / bringup manager.
