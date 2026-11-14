@@ -12,4 +12,5 @@ measures, how to run it, and the last dated result.
 | `nav_master_startup/` | app_nav_master first start: build, memory, plugins present |
 | `odom_rate_hang/` | reproduce the freeze at higher odometry rates, freeze-proof logging |
 | `perf_compare/` | CPU/RAM/GPU/power and topic rates of a running stack |
+| `rover_arming/` | phone/ground arming of robot_control: /joy presses, tracked state, mux max_angular |
 | `teleop_link/` | teleop modes, deadman, both operator links, with the laptop as orintwo |

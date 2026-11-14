@@ -53,7 +53,7 @@ apply() {
   esac
 
   export TELEOP_SOURCE=$source
-  compose up -d app_teleop app_zenoh_bridge
+  compose up -d app_teleop app_rover_arming app_zenoh_bridge
   if [[ $source == phone ]]; then
     compose up -d app_foxglove_bridge app_teleop_phone app_teleop_camera
   else
