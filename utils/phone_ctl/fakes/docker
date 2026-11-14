@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# fake docker: containers are files in $FAKE/containers; probe answers come from
+# $FAKE/probe_<check> (default: healthy).
+source "$(dirname "$0")/_ev"
+c=$FAKE/containers; mkdir -p "$c"
+declare -A name=([app_teleop]=app_teleop_container [app_foxglove_bridge]=app_foxglove_bridge_container
+                 [app_rover_arming]=app_rover_arming_container [app_nav_relay]=app_nav_relay_container [app_teleop_camera]=app_teleop_camera_container
+                 [app_zed2i_camera]=app_zed2i_camera)
+case $1 in
+  inspect) [[ -e $c/${*: -1} ]] && echo true || { echo false; exit 1; } ;;
+  compose)
+    shift; [[ $1 == -p ]] && shift 2
+    verb=$1; shift
+    [[ $1 == -d ]] && shift
+    ev "compose $verb $* TELEOP_SOURCE=${TELEOP_SOURCE:-} cwd=$(basename "$PWD")"
+    [[ -e $FAKE/compose_fail ]] && { echo "Error response from daemon: boom"; exit 1; }
+    for s in "$@"; do
+      case $verb in up) touch "$c/${name[$s]}" ;; stop) rm -f "$c/${name[$s]}" ;; esac
+    done ;;
+  exec)
+    shift; ctr=$1; shift
+    [[ -e $c/$ctr ]] || { echo "Error: No such container: $ctr"; exit 1; }
+    [[ $1 == /ros_entrypoint.sh && $2 == python3 && $3 == app_teleop/phone_probe.py ]] || { echo "unexpected exec $*"; exit 2; }
+    check=$4
+    ev "probe ${*:4}"
+    case $check in
+      mux_source) d='ok phone' ;; subs) d='ok /joy:1 /cmd_vel:1' ;; rate) d='ok 9.9' ;;
+      rover_cmd) d="ok $5 by phone: manual/crab/stopped" ;;
+    esac
+    [[ -f $FAKE/probe_$check ]] && d=$(cat "$FAKE/probe_$check")
+    echo "some ROS log line"; echo "$d"
+    [[ $d == ok* ]] ;;
+  logs) echo "log of ${*: -1}: \"quoted\" back\\slash $(printf '\033[31m')ansi$(printf '\033[0m') tab	end" ;;
+  *) echo "fake docker: unexpected $*" >&2; exit 2 ;;
+esac

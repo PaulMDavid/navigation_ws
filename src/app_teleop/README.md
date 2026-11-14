@@ -337,6 +337,86 @@ Green / red for the app: Nav2 stage up = `bringup.stages[name == "nav2"].state =
 - [ ] NAV UP from the phone brings the stages up green.
 - [ ] Map relay doesn't hurt SLAM/Nav2 rates on orintwo.
 
+## One-button bring-up from the phone (`scripts/phone_ctl.sh`)
+
+> ⚠️ **Untested on hardware.** Only the fakes and loopback-DDS tests in
+> `utils/phone_ctl` have run (checklist below).
+
+The phone (on the user's hotspot `Pixel_6105`, orintwo joined to it, found as
+`orintwo.local`) ssh's into orintwo with a key that may run only `scripts/phone_ctl.sh`;
+orintwo ssh's into the rover over the wired link with a key that may run only
+`scripts/robot_setup/rover/rover_wheels_ctl.sh`. The verb is the ssh command:
+
+| verb | does |
+| --- | --- |
+| `up` | `preflight` → `teleop` → `rover_link` → `wheels`, stops at the first failing step |
+| `camera` | `app_zed2i_camera` + `app_teleop_camera`; green when `/teleop/camera/compressed` arrives at ≥ 8 Hz (ZED first start ~6 min) |
+| `stop` | rover-wheels.service, camera, `app_rover_arming` + `app_nav_relay`; app_teleop and the bridge stay up |
+| `status` | every check, starts nothing |
+| `zero <ids>` | ids from 11 12 13 14 (FL FR RL RR): wheels off → `mdtool config zero/save` each, 3 s apart → wheels on → wheels check → `reset` |
+| `log <step>` | last 50 log lines of that step |
+
+Steps of `up`:
+- `preflight`: `/mnt/ssd` mounted, `src/config/dds/cyclonedds.xml` present, `/` below 95 %
+  (warn from 95 %, fail at 100 %).
+- `teleop`: `TELEOP_SOURCE=phone docker compose -p navbringup up -d app_teleop
+  app_foxglove_bridge app_rover_arming app_nav_relay`; green when `/teleop/state` says `source: phone`.
+- `rover_link`: 192.168.1.230 answers ping, and the ssh key works (`rover_wheels_ctl.sh status`).
+- `wheels`: starts `rover-wheels.service` on the rover; green when its runner has seen the
+  MD80s added (no "Failed to add MD80" for 5 s after the last "Added MD80" line) and
+  `/joy` + `/cmd_vel` have a subscriber; then `reset` to rover_arming. If the service is
+  already running and healthy, it is left alone and no `reset` is sent.
+
+ROS checks run as `src/app_teleop/phone_probe.py` inside `app_teleop_container`
+(`docker exec`), so orintwo's host needs no ROS.
+
+Output, one JSON object per line as the steps run:
+
+```json
+{"step": "wheels", "state": "running", "reason": "retry 1/3: MD80 11 failed to add; mdtool encoder, relaunch", "t": 9.4}
+{"step": "wheels", "state": "ok", "reason": "MD80 11 12 13 14 added; /joy + /cmd_vel subscribed; rover_arming reset", "t": 21.0}
+{"done": true, "ok": true}
+```
+
+`state` is `running|ok|fail|warn|skipped`; `t` is seconds since the command started. A
+refused command gives `{"step": "command", "state": "fail", "reason": "refused: …"}`.
+`log` gives one line per log line with `"state": "ok"`, the line in `reason` and
+`"log": true`. `up`, `stop`, `camera` and `zero` take a lock; a second one meanwhile gets
+`busy`.
+
+**Rover side** (`scripts/robot_setup/rover/`): `rover-wheels.service` is a systemd user
+unit (linger on) that runs `rover_wheels_run.sh`: `ros2 launch morpheus_control
+morpheus_control.launch.py` from `~/erc25/wheels_ws/install`, without `CYCLONEDDS_URI`,
+logging to `/tmp/wheels.log`. If the log shows `Failed to add MD80 with ID: <id>` it stops
+the launch, waits until `/dev/ttyACM0` is free, runs `mdtool encoder <id>` (SIGINT after
+5 s) with 3 s before and after, and relaunches; after 3 retries it gives up with that id.
+Settings (paths, gaps, the expected MD80 ids) can be overridden in
+`~/.config/rover-wheels.env`, see `rover_wheels_common.sh`. It replaces the `wheels` tmux
+session: stop that first (`start` refuses while something else holds `/dev/ttyACM0`).
+
+**Setup, once**, on orintwo after `scripts/sync_to_robot.sh`:
+
+```bash
+scripts/robot_setup/phone_link.sh phone.pub   # the key from the app's "Show public key"
+```
+
+It installs the phone's key (restricted to `phone_ctl.sh`), creates
+`~/.ssh/navws_rover_ed25519` and installs it on the rover (restricted to
+`rover_wheels_ctl.sh`), copies `scripts/robot_setup/rover/` to
+`rover:/home/rover/pdavid/navws_rover` and installs the unit there (asks for the rover
+password and sudo once, for linger). Later changes to the rover files:
+`scripts/sync_to_robot.sh --rover-files`. Tests: `utils/phone_ctl/`.
+
+**To do on hardware (@PaulMDavid):**
+- [ ] Run `phone_link.sh` at the robots; add the phone's public key.
+- [ ] `rover-wheels.service` starts robot_control like the tmux launch did; MD80 retry
+  recovers a "Failed to add MD80". Check the success line in `/tmp/wheels.log` matches
+  `MD80_ADDED_RE` (`[Aa]dded MD80[^0-9]*([0-9]+)`, a guess); if not, `wheels` shows a
+  warn ("no 'Added MD80' lines") instead of ok.
+- [ ] `phone_ctl.sh up` all green → HOLD ARM → drive.
+- [ ] `zero 14` on one hand-aligned wheel; the wheel tracks straight after.
+- [ ] `orintwo.local` resolves on the hotspot.
+
 ## Why the phone has its own DDS domain
 
 foxglove_bridge 3.6.0 (current Humble release) ignores `client_topic_whitelist`: a

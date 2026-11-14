@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# fake mdtool: records the call and whether anything held $MD80_PORT at that moment
+source "$(dirname "$0")/_ev"
+busy=''
+for fd in /proc/[0-9]*/fd/*; do [[ $(readlink "$fd" 2>/dev/null) == "$MD80_PORT" ]] && busy=' PORT-BUSY'; done
+ev "mdtool $*$busy"
+[[ -n ${FAKE_MDTOOL_FAIL:-} && "$*" == "$FAKE_MDTOOL_FAIL" ]] && { echo "Did not receive response from USB Device"; exit 1; }
+if [[ $1 == encoder ]]; then
+  trap 'ev "mdtool encoder interrupted"; exit 130' INT
+  while :; do echo "position: 0.001"; sleep 0.2; done
+fi
+echo "[MDTOOL] $* [OK]"

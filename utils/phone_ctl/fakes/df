@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+echo "Use%"; echo " ${FAKE_DF:-80}%"

@@ -1,0 +1,2 @@
+# sourced by the fakes: append an event line "<monotonic s> <text>" to $FAKE/events
+ev() { printf '%s %s\n' "$(awk '{print $1}' /proc/uptime)" "$*" >> "$FAKE/events"; }
