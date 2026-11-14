@@ -21,7 +21,15 @@ command source is `phone`. It talks to `app_foxglove_bridge` (port 8765).
 
 Landscape, left to right **System**, **Wheels**, **Controls**, **Camera**, opening on
 **Controls** (modes, STOP, joystick). Swipe left for the **Camera**, swipe right for
-**Wheels**, and right again for **System**.
+**Wheels**, and right again for **System**. The Wheels column also goes up and down:
+swipe down from **Wheels** (or *⌃ Autonav*) for **Autonav** above it (**Record** goes
+below Wheels, #29).
+
+```
+              Autonav
+                 ↑ swipe down
+System  ←  Wheels  ←  Controls  →  Camera
+```
 
 ### Wheels
 
@@ -59,5 +67,34 @@ Brings the robots up from the phone over ssh (#28); orintwo's side is
   `ssh-keygen -l -E md5 -f /etc/ssh/ssh_host_ed25519_key.pub`); a different key refuses
   the connection with a red banner until accepted on the phone.
 
-Widget tests: `test/wheels_page_test.dart` and `test/system_page_test.dart` (fake ssh
-layer) in the app, run in the builder container (`flutter test`).
+### Autonav
+
+Nav2 from the phone (#30); orintwo's side is `nav_relay` in `app_teleop` (#32, its
+README's "Autonav relay" section has the message contract). The app draws the map itself.
+
+- Map: the PNG from `/teleop/nav/map`, placed by `/teleop/nav/map_meta` (resolution,
+  origin, size), with the robot (▲, TF `map → chassis_link`), Nav2's plan (dots) and the
+  active goal from `/teleop/nav/state`. *⌖ center on robot*, *fit*.
+- **Tap** places a goal (◎, facing away from the robot), **drag from it** sets the heading;
+  **two fingers** pan and pinch-zoom. Nothing is sent before **GO**. One-finger gestures
+  never turn the page: leave via *⌄ Wheels*.
+- **GO**: mux to `autonomous` (`set_mode`), then the goal (`/teleop/phone/nav_cmd`
+  `{"cmd": "goal", "x", "y", "yaw"}`, map frame, REP-103 yaw). **CANCEL**: `cancel`, then
+  mux to `stop`. The red mux **STOP** is on the page too.
+- **NAV UP** / **NAV STOP**: `bringup_go` / `bringup_stop` (app_bringup_manager through
+  nav_relay). Below them the stages as one line of icons (✓ ready, ⟳ starting, · pending,
+  ! warn, ✗ failed, ⊘ blocked, – stopped); tap it for each stage's reason and failing
+  checks.
+- Header: Nav2 ● ready (nav2 stage ready and the action server there) / server up / down,
+  and the mux mode. Under GO: distance and ETA while driving, else the last goal's status
+  and reason. A refused command's reason (`rejected`) shows in red on the map.
+- The buttons are off, with the reason, without a link, without nav state, or when the
+  mux source isn't `phone` (nav_relay refuses everything then); GO also needs Nav2's
+  action server and a goal. STOP always works.
+- The nav topics are subscribed only while the page shows. The map is latched; the
+  bridge can drop it when its send buffer is full, so the app subscribes to the map and
+  meta again on every page open and whenever one half is missing 3 s after asking.
+
+Widget tests: `test/wheels_page_test.dart`, `test/system_page_test.dart` (fake ssh
+layer) and `test/autonav_page_test.dart` (fake bridge client) in the app, run in the
+builder container (`flutter test`).
