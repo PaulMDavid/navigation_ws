@@ -7,6 +7,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ros-${ROS_DISTRO}-rmw-cyclonedds-cpp \
     python3-opencv \
+    ros-${ROS_DISTRO}-nav2-msgs \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /workspace

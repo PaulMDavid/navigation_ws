@@ -13,4 +13,5 @@ measures, how to run it, and the last dated result.
 | `odom_rate_hang/` | reproduce the freeze at higher odometry rates, freeze-proof logging |
 | `perf_compare/` | CPU/RAM/GPU/power and topic rates of a running stack |
 | `rover_arming/` | phone/ground arming of robot_control: /joy presses, tracked state, mux max_angular |
+| `nav_relay/` | phone Autonav relay: nav_cmd → Nav2 action / bringup, map PNG + meta, nav state (fake Nav2/SLAM) |
 | `teleop_link/` | teleop modes, deadman, both operator links, with the laptop as orintwo |

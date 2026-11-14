@@ -1,0 +1,4 @@
+800x600 -> 800x600 (x1): 24 KiB PNG, median 9 ms
+2000x2000 -> 1000x1000 (x2): 102 KiB PNG, median 77 ms
+2500x1800 -> 834x600 (x3): 66 KiB PNG, median 56 ms
+4000x4000 -> 1000x1000 (x4): 139 KiB PNG, median 149 ms

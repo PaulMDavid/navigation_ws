@@ -34,3 +34,25 @@ rover_arming:
     ackermann_max_angular: 1.0 # rad/s; 0.1 steers only ~7 deg in Ackermann
     crab_max_angular: 0.1      # rad/s; same as teleop_mux max_angular above
     joy_topic: /joy            # robot_control on the rover reads it
+
+# nav_relay: the phone app's Autonav page (README "Autonav relay"): Nav2 goals and
+# bringup from the phone, the map + Nav2 state to the phone
+nav_relay:
+  ros__parameters:
+    map_topic: /rtabmap/map    # what Nav2's global costmap static layer reads (app_nav2 params.yaml)
+    map_transient_local: true  # rtabmap publishes the map latched
+    map_frame: map
+    base_frame: chassis_link   # Nav2 robot_base_frame
+    map_max_size: 1000         # cells per side sent to the phone; bigger maps are downsampled
+    map_max_rate: 0.5          # Hz; the map is re-sent only when it changed, at most this often
+    occupied_thresh: 65        # OccupancyGrid value >= this = occupied (map_saver default)
+    free_thresh: 25            # 0..this = free; values between = unknown
+    state_rate: 5.0            # Hz, /teleop/nav/state
+    plan_topic: /plan          # planner_server's global plan
+    plan_max_points: 200
+    plan_max_age: 3.0          # s; an older plan is not shown (the planner replans at 1 Hz)
+    action_name: /navigate_to_pose
+    bringup_go_service: /bringup/go
+    bringup_stop_service: /bringup/stop
+    bringup_status_topic: /bringup/status
+    mux_state_timeout: 2.0     # s without /teleop/state -> active source unknown, commands refused

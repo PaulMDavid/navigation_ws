@@ -55,10 +55,10 @@ apply() {
   export TELEOP_SOURCE=$source
   compose up -d app_teleop app_rover_arming app_zenoh_bridge
   if [[ $source == phone ]]; then
-    compose up -d app_foxglove_bridge app_teleop_phone app_teleop_camera
+    compose up -d app_foxglove_bridge app_teleop_phone app_teleop_camera app_nav_relay
   else
     # nothing listens for the phone; don't leave port 8765 open on eduroam
-    compose stop app_foxglove_bridge app_teleop_phone app_teleop_camera 2>/dev/null || true
+    compose stop app_foxglove_bridge app_teleop_phone app_teleop_camera app_nav_relay 2>/dev/null || true
   fi
   log "command source: $source"
 }
