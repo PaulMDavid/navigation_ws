@@ -22,13 +22,15 @@ command source is `phone`. It talks to `app_foxglove_bridge` (port 8765).
 Landscape, left to right **System**, **Wheels**, **Controls**, **Camera**, opening on
 **Controls** (modes, STOP, joystick). Swipe left for the **Camera**, swipe right for
 **Wheels**, and right again for **System**. The Wheels column also goes up and down:
-swipe down from **Wheels** (or *⌃ Autonav*) for **Autonav** above it (**Record** goes
-below Wheels, #29).
+swipe down from **Wheels** (or *⌃ Autonav*) for **Autonav** above it, swipe up (or
+*⌄ Record*, bottom left of Wheels) for **Record** below it.
 
 ```
               Autonav
                  ↑ swipe down
 System  ←  Wheels  ←  Controls  →  Camera
+                 ↓ swipe up
+              Record
 ```
 
 ### Wheels
@@ -95,6 +97,51 @@ README's "Autonav relay" section has the message contract). The app draws the ma
   bridge can drop it when its send buffer is full, so the app subscribes to the map and
   meta again on every page open and whenever one half is missing 3 s after asking.
 
+### Record
+
+Bags on orintwo from the phone (#29); orintwo's side is `phone_ctl.sh record …` →
+`scripts/record/record_drive.sh` (#35; `app_teleop/README.md`, "Recording from the
+phone", has the JSON contract the page parses). Same ssh as System: same key, host
+order, host-key pin, same forced command.
+
+```
+┌──────────────────────────────────────────────────────┐
+│ ⌃ Wheels RECORD ● recording 00:12:41 drive_… [MUX STOP]│
+├──────────────────────────┬───────────────────────────┤
+│ Preset [Drive ▾]         │   [  ● START  ]           │
+│ ☑ GQ7 IMU/GNSS/EKF    20 │   [  ■ STOP   ]           │
+│ ☑ ZED left+right compr. 7│ Bag  8.4 GB · 11.0 MB/s   │
+│ ☑ wheels / cmd_vel / tf  │ SSD  412 GB free          │
+│ ☐ Ouster points        2 │ ≈ 10 h left at this rate  │
+│ [ All topics… 52 sel. ]  │ ✗ /zed2i/… NO MESSAGES    │
+└──────────────────────────┴───────────────────────────┘
+```
+
+- Left: the presets from `record presets`, the default (`drive`) preselected. Every
+  group is a checkbox row (the preset's ticked; ▣ when only some of its topics are
+  selected). Picking another preset resets the selection to its topics. *All topics…*:
+  `record topics` (≈ 10 s; ⟳ to sample again), every live topic with type, Hz and
+  MB/s (`?` when orintwo can't load the type), a search box (name or type); the selected
+  topics that aren't live are listed too ("not live"). Ticks change the selection.
+- **● START** sends `record start <preset>` plus the differences: `+/topic` for each
+  selected topic the preset lacks, `-/topic` for each of its topics left out. Its
+  progress (`sensors: docker start …`) shows under the status; the result in green, amber
+  when sensors stayed silent (recording anyway, with their names), red on a failure.
+  Exit 75 shows "Busy: …" (amber), 64 "Refused: …" (red), with the script's reason.
+- **■ STOP** asks first, then `record stop`: the closing progress, then the final size,
+  duration, messages and files. It only stops the recording. The rover's mux STOP is the
+  small red **MUX STOP** in the header, so the two can't be confused.
+- Status: `record status` runs while the page shows (closed when it doesn't) and is
+  opened again when the page reopens, after its 1 h limit, after START/STOP, and every
+  5 s after an ssh error. Header: ● recording + elapsed + bag (○ not recording, last
+  bag). Right: bag size · on-disk rate, `/mnt/ssd` free, ≈ hours left, silent topics
+  (✗ … NO MESSAGES; ✓ all topics publishing; "… checking topics" before the first
+  verdict), an amber banner for unclosed bags (tap: the `ros2 bag reindex` command).
+  Tap the header status to ask again (e.g. after a recording was started by hand).
+- While recording (or starting) the selection is locked. Buttons and checkboxes don't
+  turn the page; a swipe down elsewhere (or *⌃ Wheels*) goes back.
+
 Widget tests: `test/wheels_page_test.dart`, `test/system_page_test.dart` (fake ssh
-layer) and `test/autonav_page_test.dart` (fake bridge client) in the app, run in the
-builder container (`flutter test`).
+layer), `test/autonav_page_test.dart` (fake bridge client) and
+`test/record_page_test.dart` (fake ssh layer playing the README's record lines and the
+real `record presets` output) in the app, run in the builder container (`flutter test`).
