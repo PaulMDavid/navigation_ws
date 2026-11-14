@@ -19,8 +19,11 @@ command source is `phone`. It talks to `app_foxglove_bridge` (port 8765).
 
 ## Pages
 
-Landscape, opening on **Controls** (modes, STOP, joystick). Swipe left for the
-**Camera**, swipe right for **Wheels**:
+Landscape, left to right **System**, **Wheels**, **Controls**, **Camera**, opening on
+**Controls** (modes, STOP, joystick). Swipe left for the **Camera**, swipe right for
+**Wheels**, and right again for **System**.
+
+### Wheels
 
 - Left: robot_control's modes as orintwo tracks them from the `/joy` presses it sent
   (`/teleop/rover_state`: input, steering, motion, last command and its age, a refused
@@ -35,5 +38,26 @@ Landscape, opening on **Controls** (modes, STOP, joystick). Swipe left for the
   `phone`. STOP always works. A drag that starts on a button doesn't turn the page.
 
 orintwo's side (the node that presses `/joy` and tracks the state) is in `app_teleop`
-(#23). Widget tests: `test/wheels_page_test.dart` in the app, run in the builder
-container (`flutter test`).
+(#23).
+
+### System
+
+Brings the robots up from the phone over ssh (#28); orintwo's side is
+`scripts/phone_ctl.sh` (#27), which the phone's key may only run.
+
+- Left: each step as `phone_ctl.sh` streams it: ✓ ok with its time, ✗ fail with the
+  reason in red, ⟳ running (e.g. `retry 1/3`), ! warn, – skipped. Rows from an earlier
+  run are dimmed. Long-press a row for its log (`log <step>`).
+- Right: *UP* (`up`), *STOP* (`stop`, always on, also cancels a running verb), *Camera
+  on* (`camera`), *Status* (`status`), *Recenter wheels…* (wheels go limp: align by
+  hand, tick FL 11 / FR 12 / RL 13 / RR 14, confirm → `zero <ids>`, its steps live) and
+  *Show public key* (copy / share).
+- ssh as `orintwo` to `orintwo.local`, then an address typed on the page (tap the host
+  in the header), then the robot address above. Key: ed25519, generated on the phone,
+  kept in Android secure storage; install it with `scripts/robot_setup/phone_link.sh`.
+  orintwo's host key is pinned on first connect (MD5, compare with
+  `ssh-keygen -l -E md5 -f /etc/ssh/ssh_host_ed25519_key.pub`); a different key refuses
+  the connection with a red banner until accepted on the phone.
+
+Widget tests: `test/wheels_page_test.dart` and `test/system_page_test.dart` (fake ssh
+layer) in the app, run in the builder container (`flutter test`).
