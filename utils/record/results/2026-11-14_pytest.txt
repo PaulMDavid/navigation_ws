@@ -55,4 +55,4 @@ test_record_ros.py::test_probe_topics_named PASSED                       [ 96%]
 test_record_ros.py::test_record_cycle PASSED                             [ 98%]
 test_record_ros.py::test_power_cut_reindex PASSED                        [100%]
 
-======================== 50 passed in 83.72s (0:01:23) =========================
+======================== 50 passed in 84.59s (0:01:24) =========================
