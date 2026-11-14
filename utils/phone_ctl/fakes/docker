@@ -1,13 +1,58 @@
 #!/usr/bin/env bash
-# fake docker: containers are files in $FAKE/containers; probe answers come from
-# $FAKE/probe_<check> (default: healthy).
+# fake docker: containers are files in $FAKE/containers (a file holding a pid = a process
+# that runs as long as the container); probe answers come from $FAKE/probe_<check>
+# (default: healthy).
+# Recording (utils/record): `run -d --name N … -c CMD` starts fakes/fake_recorder, or with
+# FAKE_REC_REAL=1 runs CMD itself (real ros2 bag record; /bags + /navws_record exist in the
+# test container). With FAKE_PROBE_REAL=1 `exec app_teleop_container … phone_probe.py` runs
+# the real probe. `topics` answers otherwise: every requested topic at 9.9 Hz except those
+# listed in $FAKE/silent_topics (0 Hz).
 source "$(dirname "$0")/_ev"
 c=$FAKE/containers; mkdir -p "$c"
 declare -A name=([app_teleop]=app_teleop_container [app_foxglove_bridge]=app_foxglove_bridge_container
                  [app_rover_arming]=app_rover_arming_container [app_nav_relay]=app_nav_relay_container [app_teleop_camera]=app_teleop_camera_container
                  [app_zed2i_camera]=app_zed2i_camera)
+alive() {  # alive <container>: file exists and, if it holds a pid, that process runs
+  local f=$c/$1 pid
+  [[ -e $f ]] || return 1
+  pid=$(cat "$f" 2>/dev/null)
+  [[ -z $pid ]] && return 0
+  if kill -0 "$pid" 2>/dev/null && [[ $(awk '{print $3}' "/proc/$pid/stat" 2>/dev/null) != Z ]]; then return 0; fi
+  kill -TERM -- "-$pid" 2>/dev/null   # the container's other processes (record_watch.py)
+  rm -f "$f"; return 1
+}
 case $1 in
-  inspect) [[ -e $c/${*: -1} ]] && echo true || { echo false; exit 1; } ;;
+  inspect) alive "${*: -1}" && echo true || { echo false; exit 1; } ;;
+  start) shift; ev "docker start $*"
+    [[ -e $FAKE/start_fail ]] && { echo "Error response from daemon: no such container"; exit 1; }
+    touch "$c/$1" ;;
+  stop) shift; ev "docker stop $*"; rm -f "$c/$1" ;;
+  kill)
+    shift; [[ $1 == -s ]] && { sig=$2; shift 2; }
+    ev "docker kill -s ${sig:-KILL} $1"
+    pid=$(cat "$c/$1" 2>/dev/null)
+    [[ -n $pid ]] && kill -"${sig:-KILL}" "$pid" ;;
+  run)
+    shift; args=("$@"); n='' bags='' cmd=''
+    for ((i = 0; i < ${#args[@]}; i++)); do
+      case ${args[i]} in
+        --name) n=${args[i+1]} ;;
+        -v) [[ ${args[i+1]} == *:/bags ]] && bags=${args[i+1]%:/bags} ;;
+        -c) cmd=${args[i+1]} ;;
+      esac
+    done
+    ev "docker run $n bags=$bags"
+    printf '%s\n' "$cmd" > "$FAKE/run_cmd"
+    printf '%s\n' "${args[@]}" > "$FAKE/run_args"
+    [[ -e $FAKE/run_fail ]] && { echo "docker: Error response from daemon: Conflict."; exit 125; }
+    if [[ -n ${FAKE_REC_REAL:-} ]]; then
+      fakes=$(cd "$(dirname "$0")" && pwd)   # the container has the real ros2, not fakes/ros2
+      PATH=${PATH//$fakes:/} setsid env --default-signal=INT bash -c "$cmd" </dev/null >/dev/null 2>&1 9>&- &
+    else
+      setsid env --default-signal=INT "$(dirname "$0")/fake_recorder" "$bags" "$cmd" </dev/null >>"$FAKE/recorder.out" 2>&1 9>&- &
+    fi
+    echo $! > "$c/$n"
+    echo "0123456789abcdef" ;;
   compose)
     shift; [[ $1 == -p ]] && shift 2
     verb=$1; shift
@@ -19,13 +64,24 @@ case $1 in
     done ;;
   exec)
     shift; ctr=$1; shift
-    [[ -e $c/$ctr ]] || { echo "Error: No such container: $ctr"; exit 1; }
+    alive "$ctr" || { echo "Error: No such container: $ctr"; exit 1; }
     [[ $1 == /ros_entrypoint.sh && $2 == python3 && $3 == app_teleop/phone_probe.py ]] || { echo "unexpected exec $*"; exit 2; }
     check=$4
     ev "probe ${*:4}"
+    if [[ -n ${FAKE_PROBE_REAL:-} ]]; then exec python3 "$APP_DIR/phone_probe.py" "${@:4}"; fi
     case $check in
       mux_source) d='ok phone' ;; subs) d='ok /joy:1 /cmd_vel:1' ;; rate) d='ok 9.9' ;;
       rover_cmd) d="ok $5 by phone: manual/crab/stopped" ;;
+      topics)
+        if [[ -f $FAKE/probe_topics_lines ]]; then cat "$FAKE/probe_topics_lines"
+        else
+          for t in "${@:5}"; do
+            [[ $t == --* ]] && { skip=1; continue; }; [[ -n ${skip:-} ]] && { skip=; continue; }
+            hz=9.9; grep -qxF -- "$t" "$FAKE/silent_topics" 2>/dev/null && hz=0.0
+            printf 'topic {"name": "%s", "type": "sensor_msgs/msg/Imu", "hz": %s, "mbps": 0.01}\n' "$t" "$hz"
+          done
+        fi
+        d='ok topics sampled' ;;
     esac
     [[ -f $FAKE/probe_$check ]] && d=$(cat "$FAKE/probe_$check")
     echo "some ROS log line"; echo "$d"
