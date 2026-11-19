@@ -28,6 +28,9 @@ new pose = reference pose + (0, 0, DZ).
 
 ## Results
 
+**2026-11-19 (lidar spacer)**: lidar raised 1 cm for the 3D-printed spacer under it:
+`lidar_xyz` z 0.094 -> 0.104 (base 1 cm above the body top); `lio_base_to_chassis` z -0.104.
+
 **2026-11-19 (zed2i)**: ZED2i drawn with Stereolabs' official mesh
 (`meshes/stl/zed2i_stereolabs.stl`, Apache-2.0) on `zed2i_camera_center`, as the wrapper
 does; the placeholder box on `zed_2i_link` is gone. `zed2i_xyz` 0.39 0 0.0637 (was
