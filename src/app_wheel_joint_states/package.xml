@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypeversion="3.0"?>
+<package format="3">
+  <name>app_wheel_joint_states</name>
+  <version>0.1.0</version>
+  <description>Wheel and steering MD80 positions (/Motor_pos from wheels_cpp) to /joint_states, as a composable node. Port of motor_controller/joint_state_node.py from the erc25 repo.</description>
+  <maintainer email="paulmdavid95@gmail.com">Paul David</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <depend>rclcpp</depend>
+  <depend>rclcpp_components</depend>
+  <depend>sensor_msgs</depend>
+  <depend>std_msgs</depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>
