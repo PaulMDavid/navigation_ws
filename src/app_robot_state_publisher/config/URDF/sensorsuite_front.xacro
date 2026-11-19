@@ -21,8 +21,10 @@
   <xacro:property name="imu_rpy"   value="0 0 0"/>
 
   <!-- TODO (2026-11-19):
-       - IMU: imu_xyz / imu_rpy are still the sim placeholder. Measure the real IMU
-         mount (the GQ7, /imu/data) and update them.
+       - IMU: imu_xyz / imu_rpy are still the sim placeholder. For app_body_tilt only
+         imu_rpy matters (how the GQ7's axes sit on the body; it's x fwd, y right,
+         z down natively); imu_xyz doesn't change the tilt. imu_xyz still matters as
+         the origin the GQ7 lever arms below are measured from.
        - GNSS antennas: add links for the GQ7's two antennas here (e.g. gnss_1_link,
          gnss_2_link) with their measured mounts. Then:
          - replace the placeholder static TF chassis_link -> gnss_link

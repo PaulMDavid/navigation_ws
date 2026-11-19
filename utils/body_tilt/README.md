@@ -33,5 +33,6 @@ locked to the other mode makes the next run fail with folded signs.
   both times (50/0 votes).
 - RViz (fixed frame `drivetrain_link`): body, lidar and ZED rock with the fake pitch,
   wheels stay level.
-- Not yet run against the real GQ7: its frame (`imu_link`, FLU vs the GQ7's FRD) and
-  mount (`imu_rpy`) are unmeasured, see the TODO in `sensorsuite_front.xacro`.
+- Not yet run against the real GQ7: its axes (`imu_link`, FLU vs the GQ7's FRD, i.e.
+  `imu_rpy`) are unmeasured; its position doesn't matter for the tilt. See the TODO in
+  `sensorsuite_front.xacro`.
