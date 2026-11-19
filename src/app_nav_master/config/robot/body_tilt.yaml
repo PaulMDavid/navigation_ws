@@ -1,0 +1,9 @@
+# app_body_tilt::BodyTilt
+/**:
+  ros__parameters:
+    imu_topic: /imu/data
+    joint_name: body_tilt_joint
+    body_frame: chassis_link
+    orientation_frame: auto   # auto | enu | ned
+    pitch_offset: 0.0         # rad
+    publish_rate: 50.0

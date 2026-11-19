@@ -1,18 +1,30 @@
 <?xml version="1.0"?>
-<!-- Front sensor suite: Ouster OS0 lidar, ZED2i stereo camera, IMU. All mounted on
-     chassis_link. Mount offsets are the properties below (placeholders from the sim
-     model until measured on the rover).
-     If you change the lidar mount, also update the inverse in
+<!-- Lidar mount change: also update its inverse in
      app_nav_master/config/odometry/li_slam/lio_base_to_chassis.yaml. -->
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
 
-  <!-- chassis_link -> mount link, metres / radians -->
-  <xacro:property name="lidar_xyz" value="0.285 -0.155 0.17"/>
+  <!-- lidar: front-right top corner on a 1 cm spacer; zed2i: 4 cm ahead of the top
+       front edge, top level with the body -->
+  <xacro:property name="lidar_xyz" value="0.3098 -0.1666 0.104"/>
   <xacro:property name="lidar_rpy" value="0.0 0.0 0.0"/>
-  <xacro:property name="zed2i_xyz" value="0.35 0.0 0.106"/>
+  <xacro:property name="zed2i_xyz" value="0.39 0.0 0.0637"/>
   <xacro:property name="zed2i_rpy" value="0.0 0.0 0.0"/>
   <xacro:property name="imu_xyz"   value="0.15 0.0 0.10"/>
   <xacro:property name="imu_rpy"   value="0 0 0"/>
+
+  <!-- TODO (2026-11-19):
+       - IMU: imu_xyz / imu_rpy are still the sim placeholder. For app_body_tilt only
+         imu_rpy matters (how the GQ7's axes sit on the body; it's x fwd, y right,
+         z down natively); imu_xyz doesn't change the tilt. imu_xyz still matters as
+         the origin the GQ7 lever arms below are measured from.
+       - GNSS antennas: add links for the GQ7's two antennas here (e.g. gnss_1_link,
+         gnss_2_link) with their measured mounts. Then:
+         - replace the placeholder static TF chassis_link -> gnss_link
+           (app_nav_master/config/robot/gnss_tf.yaml, z 0.5);
+         - set the lever arms in app_microstrain/config/gq7.yml
+           (gnss1/gnss2_antenna_offset, now [0, -0.5, 0] / [0, 0.5, 0]) to the same
+           values. Mind the frames: GQ7 is x fwd, y right, z down; URDF is x fwd,
+           y left, z up. -->
 
   <!-- ===================== IMU ===================== -->
   <link name="imu_link"/>
@@ -48,7 +60,6 @@
     <child link="os0_lidar_link"/>
   </joint>
 
-  <!-- os_sensor is the Ouster driver's frame; the driver adds os_lidar / os_imu below it -->
   <link name="os_sensor"/>
   <joint name="os_sensor_bridge_joint" type="fixed">
     <parent link="os0_lidar_link"/>
@@ -56,42 +67,36 @@
   </joint>
 
   <!-- ===================== ZED2i ===================== -->
-  <link name="zed_2i_link">
-    <visual>
-      <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.0"/>
-      <geometry>
-        <box size="0.05 0.1 0.05"/>
-      </geometry>
-      <material name="">
-        <color rgba="0.1803921568627451 0.7607843137254902 0.49411764705882355 1.0"/>
-      </material>
-    </visual>
-    <collision>
-      <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.0"/>
-      <geometry>
-        <box size="0.5 0.5 0.5"/>
-      </geometry>
-    </collision>
-    <inertial>
-      <origin xyz="0.0 0.0 0.0"/>
-      <mass value="1.0"/>
-      <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
-    </inertial>
-  </link>
+  <link name="zed_2i_link"/>
   <joint name="zed_2i_joint" type="fixed">
     <origin rpy="${zed2i_rpy}" xyz="${zed2i_xyz}"/>
     <parent link="chassis_link"/>
     <child link="zed_2i_link"/>
   </joint>
 
-  <!-- ZED wrapper frames (the wrapper runs with publish_urdf/publish_tf false) -->
   <link name="zed2i_camera_link"/>
   <joint name="zed_camera_bridge_joint" type="fixed">
     <parent link="zed_2i_link"/>
     <child link="zed2i_camera_link"/>
   </joint>
 
-  <link name="zed2i_camera_center"/>
+  <link name="zed2i_camera_center">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="${mesh_dir}/stl/zed2i_stereolabs.stl"/>
+      </geometry>
+      <material name="zed2i_grey">
+        <color rgba="0.25 0.25 0.25 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="${mesh_dir}/stl/zed2i_stereolabs.stl"/>
+      </geometry>
+    </collision>
+  </link>
   <joint name="zed2i_camera_center_joint" type="fixed">
     <parent link="zed2i_camera_link"/>
     <child link="zed2i_camera_center"/>
