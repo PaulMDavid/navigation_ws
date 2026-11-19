@@ -8,10 +8,13 @@
 
   <!-- chassis_link -> mount link, metres / radians.
        Lidar: base on the body top (z 0.094 = box top), flush inside the front-right
-       corner (box x 0.35 / y -0.21 minus the OS0 mesh's +x 0.0402 / -y 0.0434 extent). -->
+       corner (box x 0.35 / y -0.21 minus the OS0 mesh's +x 0.0402 / -y 0.0434 extent).
+       ZED2i: centred in y, camera_center 4 cm ahead of the body's top front edge
+       (x 0.35 + 0.04), camera top level with the body top: 0.094 - 0.015 (camera_link
+       -> camera_center) - 0.0153 (mesh top above camera_center) = 0.0637. -->
   <xacro:property name="lidar_xyz" value="0.3098 -0.1666 0.094"/>
   <xacro:property name="lidar_rpy" value="0.0 0.0 0.0"/>
-  <xacro:property name="zed2i_xyz" value="0.35 0.0 0.106"/>
+  <xacro:property name="zed2i_xyz" value="0.39 0.0 0.0637"/>
   <xacro:property name="zed2i_rpy" value="0.0 0.0 0.0"/>
   <xacro:property name="imu_xyz"   value="0.15 0.0 0.10"/>
   <xacro:property name="imu_rpy"   value="0 0 0"/>
@@ -58,28 +61,8 @@
   </joint>
 
   <!-- ===================== ZED2i ===================== -->
-  <link name="zed_2i_link">
-    <visual>
-      <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.0"/>
-      <geometry>
-        <box size="0.05 0.1 0.05"/>
-      </geometry>
-      <material name="">
-        <color rgba="0.1803921568627451 0.7607843137254902 0.49411764705882355 1.0"/>
-      </material>
-    </visual>
-    <collision>
-      <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.0"/>
-      <geometry>
-        <box size="0.5 0.5 0.5"/>
-      </geometry>
-    </collision>
-    <inertial>
-      <origin xyz="0.0 0.0 0.0"/>
-      <mass value="1.0"/>
-      <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
-    </inertial>
-  </link>
+  <!-- mount frame = bottom centre of the camera (same place as zed2i_camera_link) -->
+  <link name="zed_2i_link"/>
   <joint name="zed_2i_joint" type="fixed">
     <origin rpy="${zed2i_rpy}" xyz="${zed2i_xyz}"/>
     <parent link="chassis_link"/>
@@ -93,7 +76,24 @@
     <child link="zed2i_camera_link"/>
   </joint>
 
-  <link name="zed2i_camera_center"/>
+  <!-- Stereolabs' zed2i mesh, drawn on camera_center as in zed_macro.urdf.xacro -->
+  <link name="zed2i_camera_center">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="${mesh_dir}/stl/zed2i_stereolabs.stl"/>
+      </geometry>
+      <material name="zed2i_grey">
+        <color rgba="0.25 0.25 0.25 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="${mesh_dir}/stl/zed2i_stereolabs.stl"/>
+      </geometry>
+    </collision>
+  </link>
   <joint name="zed2i_camera_center_joint" type="fixed">
     <parent link="zed2i_camera_link"/>
     <child link="zed2i_camera_center"/>

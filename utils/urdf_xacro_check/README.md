@@ -28,6 +28,13 @@ new pose = reference pose + (0, 0, DZ).
 
 ## Results
 
+**2026-11-19 (zed2i)**: ZED2i drawn with Stereolabs' official mesh
+(`meshes/stl/zed2i_stereolabs.stl`, Apache-2.0) on `zed2i_camera_center`, as the wrapper
+does; the placeholder box on `zed_2i_link` is gone. `zed2i_xyz` 0.39 0 0.0637 (was
+0.35 0 0.106). Mesh in `chassis_link`: x 0.3720..0.4151, y ±0.0876, z 0.0638..0.0940,
+i.e. centred, top level with the body top, camera_center 4 cm ahead of the top front
+edge. Optical frames at x 0.38, y ±0.06, z 0.0787.
+
 **2026-11-19 (lidar)**: lidar placed flush inside the body's front-right top corner,
 `lidar_xyz` 0.3098 −0.1666 0.094 (was 0.285 −0.155 0.17). The OS0 mesh in `chassis_link`
 spans x 0.2635..0.3500, y −0.2100..−0.1232, z 0.0939..0.1675, so it touches the box's
