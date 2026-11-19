@@ -75,7 +75,13 @@ private:
     // up is +z, for NED -z; R^T * (0,0,1) is R's third row.
     tf2::Quaternion q;
     tf2::fromMsg(msg.orientation, q);
-    const tf2::Matrix3x3 R(q.normalized());
+    const double qn = q.length();
+    if (!std::isfinite(qn) || qn < 0.5) {  // NaN or the all-zero "no orientation" quaternion
+      RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10000,
+        "dropping %s with an invalid orientation quaternion", imu_topic_.c_str());
+      return;
+    }
+    const tf2::Matrix3x3 R(q / qn);
     const tf2::Vector3 z_row = R.getRow(2);
 
     if (up_sign_ == 0.0 && !decide_frame(msg, z_row)) {
