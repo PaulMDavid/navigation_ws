@@ -46,7 +46,8 @@ stages:
 ```
 
 `file_params: {param: path under src/}` sets a string parameter to a file's contents
-(robot_state_publisher's `robot_description` from the URDF). A `node` check
+(robot_state_publisher's `robot_description` from the URDF; `.xacro` files are rendered
+with xacro first). A `node` check
 (`{type: node, node: /nav_master_container}`) waits for a node to appear, which is how
 the container stage waits out the first-start compile.
 

@@ -1,5 +1,5 @@
 # robot_state_publisher::RobotStatePublisher. robot_description is the URDF text,
-# app_robot_state_publisher/config/URDF/robot.urdf; the loader has to read the file
+# app_robot_state_publisher/config/URDF/robot.urdf.xacro, rendered by the loader
 # into that parameter (a params file can't reference it). Wheel/steering feedback via
 # /joint_states is issue #15.
 /**:

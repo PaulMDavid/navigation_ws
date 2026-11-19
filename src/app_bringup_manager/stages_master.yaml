@@ -34,7 +34,7 @@ stages:
     components:
       - {package: robot_state_publisher, plugin: robot_state_publisher::RobotStatePublisher,
          name: robot_state_publisher, params: robot/robot_state_publisher.yaml,
-         file_params: {robot_description: app_robot_state_publisher/config/URDF/robot.urdf}}
+         file_params: {robot_description: app_robot_state_publisher/config/URDF/robot.urdf.xacro}}
       - {package: tf2_ros, plugin: tf2_ros::StaticTransformBroadcasterNode,
          name: gnss_static_tf, params: robot/gnss_tf.yaml}
     checks:

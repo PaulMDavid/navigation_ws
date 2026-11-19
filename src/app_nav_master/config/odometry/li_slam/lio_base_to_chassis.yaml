@@ -1,6 +1,6 @@
 # Static TF base_link (li_slam's lidar pose = os_sensor) -> chassis_link: the inverse
 # of the URDF's chassis_link -> os0_lidar_link -> os_sensor (xyz 0.285 -0.155 0.17,
-# no rotation). Update together with os0_lidar_joint in robot.urdf.
+# no rotation). Update together with lidar_xyz in URDF/sensorsuite_front.xacro.
 /**:
   ros__parameters:
     frame_id: base_link

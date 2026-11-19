@@ -490,12 +490,18 @@ class BringupManager(Node):
                 except (OSError, yaml.YAMLError, TypeError) as e:
                     return f'parameters for {c["name"]}: {e}'
             # file_params: {param: path under src/} sets a string parameter to a file's
-            # text, e.g. robot_description to the URDF
+            # text, e.g. robot_description to the URDF; a .xacro file is rendered first
             for key, path in c.get('file_params', {}).items():
+                full = os.path.join(WS_MOUNT, path)
                 try:
-                    with open(os.path.join(WS_MOUNT, path)) as f:
-                        req.parameters.append(Parameter(key, value=f.read()).to_parameter_msg())
-                except OSError as e:
+                    if full.endswith('.xacro'):
+                        import xacro
+                        text = xacro.process_file(full).toprettyxml(indent='  ')
+                    else:
+                        with open(full) as f:
+                            text = f.read()
+                    req.parameters.append(Parameter(key, value=text).to_parameter_msg())
+                except Exception as e:  # OSError, xacro.XacroException, XML errors
                     return f'{key} for {c["name"]}: {e}'
             req.extra_arguments = [Parameter('use_intra_process_comms',
                                              value=c.get('intra_process', False)).to_parameter_msg()]
