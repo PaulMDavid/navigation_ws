@@ -28,6 +28,12 @@ new pose = reference pose + (0, 0, DZ).
 
 ## Results
 
+**2026-11-19 (lidar)**: lidar placed flush inside the body's front-right top corner,
+`lidar_xyz` 0.3098 −0.1666 0.094 (was 0.285 −0.155 0.17). The OS0 mesh in `chassis_link`
+spans x 0.2635..0.3500, y −0.2100..−0.1232, z 0.0939..0.1675, so it touches the box's
+front (x 0.35), right (y −0.21) and top (z 0.094) faces. `lio_base_to_chassis` updated
+to match.
+
 **2026-11-19 (later)**: `chassis_link` moved down 0.114 m onto the shaft pivot axis
 (it sat 2 cm above the chassis box). Box and shaft pivots changed by +0.114 m in z so the
 drivetrain stays put; the sensor suite keeps its offsets from `chassis_link` (lidar 0.17,

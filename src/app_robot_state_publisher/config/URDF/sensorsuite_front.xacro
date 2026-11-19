@@ -6,8 +6,10 @@
      app_nav_master/config/odometry/li_slam/lio_base_to_chassis.yaml. -->
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
 
-  <!-- chassis_link -> mount link, metres / radians -->
-  <xacro:property name="lidar_xyz" value="0.285 -0.155 0.17"/>
+  <!-- chassis_link -> mount link, metres / radians.
+       Lidar: base on the body top (z 0.094 = box top), flush inside the front-right
+       corner (box x 0.35 / y -0.21 minus the OS0 mesh's +x 0.0402 / -y 0.0434 extent). -->
+  <xacro:property name="lidar_xyz" value="0.3098 -0.1666 0.094"/>
   <xacro:property name="lidar_rpy" value="0.0 0.0 0.0"/>
   <xacro:property name="zed2i_xyz" value="0.35 0.0 0.106"/>
   <xacro:property name="zed2i_rpy" value="0.0 0.0 0.0"/>
