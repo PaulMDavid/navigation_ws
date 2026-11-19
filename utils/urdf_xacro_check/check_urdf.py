@@ -96,7 +96,9 @@ def main_shift(dz, new_path, ref_path):
     new = poses(ET.parse(new_path).getroot())
     ref = poses(ET.parse(ref_path).getroot())
     bad = 0
-    roots = [n for n in new if '/' not in n and all(abs(new[n][i][j] - (i == j)) < 1e-12 for i in range(4) for j in range(4))]
+    new_root = ET.parse(new_path).getroot()
+    children = {j.find('child').get('link') for j in new_root.findall('joint')}
+    roots = [n for n in items(new_root, 'link') if n not in children]
     for name, T in sorted(new.items()):
         if name in roots:
             continue  # the root frame is the one that moved on purpose

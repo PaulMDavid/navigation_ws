@@ -1,15 +1,9 @@
 <?xml version="1.0"?>
-<!-- Chassis and drivetrain: chassis_link (the root frame; Nav2, the EKF and li_slam's
-     static TF all use it) -> left/right shafts -> four struts -> steering -> wheels.
-     chassis_link's origin is on the shaft pivot axis, midway between the two shafts
-     (2026-11-19; the sim model had it 0.114 m higher, 2 cm above the chassis box).
-     Other values come from the morpheus_description model in erc-26-simulation.
-     The shaft, steering and wheel joints publish TF only once something sends
-     /joint_states (issue #15). Don't name a frame base_link: li_slam owns that name
-     (odom -> base_link = lidar pose, see app_nav_master/config/odometry/li_slam). -->
+<!-- chassis_link (body, origin on the shaft axis) -> body_tilt_joint -> drivetrain_link
+     -> shafts -> struts -> steering -> wheels.
+     Don't name a frame base_link: li_slam owns it (odom -> base_link = lidar pose). -->
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
 
-  <!-- A link drawn with <part>.dae, colliding with <part>.stl. -->
   <xacro:macro name="mesh_link" params="name part vis_xyz vis_rpy col_xyz col_rpy
                                          mass com ixx ixy ixz iyy iyz izz">
     <link name="${name}">
@@ -87,13 +81,24 @@
     </inertial>
   </link>
 
+  <!-- ===================== body tilt ===================== -->
+  <!-- joint value = body pitch (app_body_tilt) -->
+  <link name="drivetrain_link"/>
+  <joint name="body_tilt_joint" type="revolute">
+    <origin rpy="0 0 0" xyz="0 0 0"/>
+    <parent link="chassis_link"/>
+    <child link="drivetrain_link"/>
+    <axis xyz="0 -1 0"/>
+    <limit effort="0" lower="${-pi/2}" upper="${pi/2}" velocity="10.0"/>
+  </joint>
+
   <!-- ===================== left side ===================== -->
   <xacro:mesh_link name="shaft_left_link" part="shaft"
     vis_xyz="-0.1 0.0 -0.231" vis_rpy="-1.5707963267948966 -1.5707963267948966 0.0"
     col_xyz="-0.1 0.0 -0.231014" col_rpy="-1.571 -1.5707999999991324 0.0"
     mass="0.75" com="-0.0002091194 1.32101e-05 0.0184469812"
     ixx="0.0012178097" ixy="-5.6e-09" ixz="2.83456e-05" iyy="0.0008777415" iyz="1.4e-09" izz="0.0004882588"/>
-  <xacro:steer_joint name="shaft_left_joint" parent="chassis_link" child="shaft_left_link"
+  <xacro:steer_joint name="shaft_left_joint" parent="drivetrain_link" child="shaft_left_link"
     xyz="0.0 0.235014 0.001" rpy="1.5707999999991324 -1.5707900000007928 -3.1415899999999253"/>
 
   <!-- front left -->
@@ -154,7 +159,7 @@
     ixx="0.0" ixy="0.0" ixz="0.0" iyy="0.0" iyz="0.0" izz="0.0"/>
   <joint name="shaft_right_joint" type="revolute">
     <origin rpy="-1.5707999999991324 0.0 0.0" xyz="8.1925e-05 -0.231256 -0.001299"/>
-    <parent link="chassis_link"/>
+    <parent link="drivetrain_link"/>
     <child link="shaft_right_link"/>
     <axis xyz="0.0 0.0 1.0"/>
     <limit effort="10.0" lower="${-pi}" upper="${pi}" velocity="10.0"/>
