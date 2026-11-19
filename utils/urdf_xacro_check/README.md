@@ -22,7 +22,21 @@ ROS check (Humble container, `ros-humble-xacro` installed): `xacro ... -o /tmp/r
 `ros2 run robot_state_publisher robot_state_publisher /tmp/robot.urdf`, then
 `ros2 run tf2_ros tf2_echo chassis_link <frame>`.
 
+`check_urdf.py --shift DZ NEW REF` is for a moved root frame: with all joints at zero,
+every link frame and visual/collision pose must be where it was in the reference, i.e.
+new pose = reference pose + (0, 0, DZ).
+
 ## Results
+
+**2026-11-19 (later)**: `chassis_link` moved down 0.114 m onto the shaft pivot axis
+(it sat 2 cm above the chassis box). Box and shaft pivots changed by +0.114 m in z so the
+drivetrain stays put; the sensor suite keeps its offsets from `chassis_link` (lidar 0.17,
+ZED2i 0.106, IMU 0.10), i.e. it comes down 0.114 m with the frame. li_slam's
+`lio_base_to_chassis` and the GNSS placeholder are unchanged.
+- `check_urdf.py --shift 0.114`: the 44 drivetrain/box frames and visuals are where they
+  were; only the 14 sensor-suite entries differ, each by exactly 0.114 m.
+- `check_urdf.py --shift 0`: no sensor-suite entry differs (same pose w.r.t. `chassis_link`).
+- From `chassis_link`: shaft pivots z +0.0010 / −0.0013; wheel centres z ≈ −0.27 (joints at 0).
 
 **2026-11-19**: split into `base_link.xacro` + `sensorsuite_front.xacro`.
 - check_urdf.py: 25 links + 24 joints kept, all identical to the reference; dropped the
