@@ -119,9 +119,9 @@ flowchart TD
 
   map -->|"app_rtab_map · loop closure"| odom
   odom -->|"app_rtab_map · ICP odometry"| chassis
-  chassis -->|"app_robot_state_publisher · robot.urdf"| zed
-  chassis -->|"app_robot_state_publisher · robot.urdf"| imu
-  chassis -->|"app_robot_state_publisher · robot.urdf"| links
+  chassis -->|"app_robot_state_publisher · sensorsuite_front.xacro"| zed
+  chassis -->|"app_robot_state_publisher · sensorsuite_front.xacro"| imu
+  chassis -->|"app_robot_state_publisher · base_link.xacro"| links
   zed -->|"static_transform_publisher · identity"| zedcam
 ```
 
@@ -144,7 +144,7 @@ What each package puts on the bus, and what it takes off it.
 | `app_robot_localization` | `/zed2i/zed2i/odom` → `/odom` | `/odometry/filtered` |
 | `app_nav2` | `/rtabmap/map`<br>`/rtabmap/odom_reliable`<br>`/ouster/points` | velocity commands |
 | `app_aruco_detector` | `…/rect/image/compressed`<br>`…/rect/camera_info` | `aruco_detections` |
-| `app_robot_state_publisher` | `robot.urdf` | `/tf`<br>`/tf_static` |
+| `app_robot_state_publisher` | `config/URDF/robot.urdf.xacro` | `/tf`<br>`/tf_static` |
 | `app_LIO_SAM` | `/ouster/points`<br>`/ouster/imu` | `/map`, `/modified_map` (PointCloud2)<br>`/path`, `/current_pose`, `/odom`<br>TF `map → chassis_link` |
 | `app_fast_livo2` | — hardware (ZED2i + Ouster, composed in-process) | FAST-LIVO2 odometry + map (extrinsics not yet calibrated — not wired into the runtime graph above) |
 | `app_zenoh_bridge` | — DDS bridge | carries the graph over unreliable WiFi |

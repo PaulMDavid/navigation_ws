@@ -33,6 +33,6 @@ services:
   
     working_dir: /workspace
 
-    command: ros2 run robot_state_publisher robot_state_publisher config/URDF/robot.urdf
+    command: ["bash", "-c", "xacro config/URDF/robot.urdf.xacro -o /tmp/robot.urdf && exec ros2 run robot_state_publisher robot_state_publisher /tmp/robot.urdf"]
     # add tdev null to avoid error when no command is provided, and to keep the container running
     #command: tail -f /dev/null

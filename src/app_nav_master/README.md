@@ -35,7 +35,7 @@ One params file per node, `config/<subsystem>/`:
 | `sensors/zed2i.yaml` | ZED 2i; generated, self-contained (wrapper defaults + our launch args) |
 | `sensors/microstrain.yaml` | CV7 AHRS |
 | `sensors/ublox.yaml` | F9P |
-| `robot/robot_state_publisher.yaml` | URDF publisher; `robot_description` is read from `app_robot_state_publisher/config/URDF/robot.urdf` by the loader |
+| `robot/robot_state_publisher.yaml` | URDF publisher; `robot_description` is rendered from `app_robot_state_publisher/config/URDF/robot.urdf.xacro` by the loader |
 | `robot/gnss_tf.yaml` | `chassis_link → gnss_link` |
 | `mapping/rtabmap.yaml` | rtabmap, mapping only (rtabmap backend) |
 | `nav2/nav2_params.yaml` | every Nav2 server, keyed by node name |
