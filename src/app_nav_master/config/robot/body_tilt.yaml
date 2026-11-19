@@ -1,10 +1,9 @@
-# app_body_tilt::BodyTilt: body pitch on the drivetrain from the GQ7 -> /joint_states
-# (body_tilt_joint in URDF/base_link.xacro). Assumes the drivetrain stands level.
+# app_body_tilt::BodyTilt
 /**:
   ros__parameters:
     imu_topic: /imu/data
     joint_name: body_tilt_joint
     body_frame: chassis_link
-    orientation_frame: auto   # auto (accelerometer decides while still) | enu | ned
-    pitch_offset: 0.0         # rad; set so a level body reads 0 once the IMU mount is measured
+    orientation_frame: auto   # auto | enu | ned
+    pitch_offset: 0.0         # rad
     publish_rate: 50.0

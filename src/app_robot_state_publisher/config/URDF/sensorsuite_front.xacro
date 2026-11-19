@@ -1,18 +1,10 @@
 <?xml version="1.0"?>
-<!-- Front sensor suite: Ouster OS0 lidar, ZED2i stereo camera, IMU. All mounted on
-     chassis_link. Mount offsets are the properties below (placeholders from the sim
-     model until measured on the rover).
-     If you change the lidar mount, also update the inverse in
+<!-- Lidar mount change: also update its inverse in
      app_nav_master/config/odometry/li_slam/lio_base_to_chassis.yaml. -->
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
 
-  <!-- chassis_link -> mount link, metres / radians.
-       Lidar: base 1 cm above the body top (z 0.094 = box top, + 0.01 for the 3D-printed
-       spacer it sits on), flush inside the front-right
-       corner (box x 0.35 / y -0.21 minus the OS0 mesh's +x 0.0402 / -y 0.0434 extent).
-       ZED2i: centred in y, camera_center 4 cm ahead of the body's top front edge
-       (x 0.35 + 0.04), camera top level with the body top: 0.094 - 0.015 (camera_link
-       -> camera_center) - 0.0153 (mesh top above camera_center) = 0.0637. -->
+  <!-- lidar: front-right top corner on a 1 cm spacer; zed2i: 4 cm ahead of the top
+       front edge, top level with the body -->
   <xacro:property name="lidar_xyz" value="0.3098 -0.1666 0.104"/>
   <xacro:property name="lidar_rpy" value="0.0 0.0 0.0"/>
   <xacro:property name="zed2i_xyz" value="0.39 0.0 0.0637"/>
@@ -68,7 +60,6 @@
     <child link="os0_lidar_link"/>
   </joint>
 
-  <!-- os_sensor is the Ouster driver's frame; the driver adds os_lidar / os_imu below it -->
   <link name="os_sensor"/>
   <joint name="os_sensor_bridge_joint" type="fixed">
     <parent link="os0_lidar_link"/>
@@ -76,7 +67,6 @@
   </joint>
 
   <!-- ===================== ZED2i ===================== -->
-  <!-- mount frame = bottom centre of the camera (same place as zed2i_camera_link) -->
   <link name="zed_2i_link"/>
   <joint name="zed_2i_joint" type="fixed">
     <origin rpy="${zed2i_rpy}" xyz="${zed2i_xyz}"/>
@@ -84,14 +74,12 @@
     <child link="zed_2i_link"/>
   </joint>
 
-  <!-- ZED wrapper frames (the wrapper runs with publish_urdf/publish_tf false) -->
   <link name="zed2i_camera_link"/>
   <joint name="zed_camera_bridge_joint" type="fixed">
     <parent link="zed_2i_link"/>
     <child link="zed2i_camera_link"/>
   </joint>
 
-  <!-- Stereolabs' zed2i mesh, drawn on camera_center as in zed_macro.urdf.xacro -->
   <link name="zed2i_camera_center">
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>

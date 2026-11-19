@@ -1,12 +1,5 @@
-// Body tilt from the GQ7: the rover body sits on the shaft axis like on a knife edge and
-// tips on the drivetrain. Without shaft encoders, take the body's pitch against gravity
-// from the IMU's orientation and publish it as body_tilt_joint on /joint_states, so
-// robot_state_publisher turns drivetrain_link (and the wheels) back to level under the
-// body. Assumes the drivetrain stands level: on a slope the slope shows up as body tilt.
-//
-// Only the up direction is used, so heading and the IMU's world frame don't matter
-// beyond knowing whether its orientation is ENU (z up) or NED (z down) referenced:
-// orientation_frame auto decides that from the accelerometer while the rover is still.
+// Body pitch against gravity from the IMU orientation -> body_tilt_joint on /joint_states.
+// Assumes the drivetrain stands level.
 
 #include <cmath>
 #include <memory>
@@ -35,10 +28,9 @@ public:
     imu_topic_ = declare_parameter<std::string>("imu_topic", "/imu/data");
     joint_name_ = declare_parameter<std::string>("joint_name", "body_tilt_joint");
     body_frame_ = declare_parameter<std::string>("body_frame", "chassis_link");
-    // auto | enu | ned: the world frame the IMU's orientation is given in
     frame_mode_ = declare_parameter<std::string>("orientation_frame", "auto");
-    pitch_offset_ = declare_parameter<double>("pitch_offset", 0.0);  // rad, added to the pitch
-    const double rate = declare_parameter<double>("publish_rate", 50.0);  // Hz, <= IMU rate
+    pitch_offset_ = declare_parameter<double>("pitch_offset", 0.0);
+    const double rate = declare_parameter<double>("publish_rate", 50.0);
     min_period_ = rate > 0.0 ? 1.0 / rate : 0.0;
 
     if (frame_mode_ == "enu") {
@@ -71,18 +63,16 @@ private:
       return;
     }
 
-    // Up in the sensor frame: R (sensor -> world) transposed times world up. For ENU world
-    // up is +z, for NED -z; R^T * (0,0,1) is R's third row.
     tf2::Quaternion q;
     tf2::fromMsg(msg.orientation, q);
     const double qn = q.length();
-    if (!std::isfinite(qn) || qn < 0.5) {  // NaN or the all-zero "no orientation" quaternion
+    if (!std::isfinite(qn) || qn < 0.5) {
       RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10000,
         "dropping %s with an invalid orientation quaternion", imu_topic_.c_str());
       return;
     }
     const tf2::Matrix3x3 R(q / qn);
-    const tf2::Vector3 z_row = R.getRow(2);
+    const tf2::Vector3 z_row = R.getRow(2);  // world z in the sensor frame
 
     if (up_sign_ == 0.0 && !decide_frame(msg, z_row)) {
       return;
@@ -91,11 +81,10 @@ private:
     const rclcpp::Time stamp(msg.header.stamp);
     const double dt = (stamp - last_pub_).seconds();
     if (last_pub_.nanoseconds() > 0 && dt >= 0.0 && dt < min_period_) {
-      return;  // decimate; a stamp going backwards (bag loop) publishes and restarts
+      return;
     }
 
     const tf2::Vector3 up = mount_ * (z_row * up_sign_);
-    // Pure pitch theta about y: up in the body frame is (-sin theta, 0, cos theta)
     const double pitch = std::atan2(-up.x(), up.z()) + pitch_offset_;
     if (std::abs(pitch) > 1.0) {
       RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10000,
@@ -128,7 +117,7 @@ private:
     }
   }
 
-  // Standing still, the accelerometer reads +g along up. Vote ENU vs NED until 50 samples agree.
+  // Still, the accelerometer reads +g along up.
   bool decide_frame(const sensor_msgs::msg::Imu & msg, const tf2::Vector3 & z_row)
   {
     tf2::Vector3 a;

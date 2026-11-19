@@ -1,20 +1,9 @@
 <?xml version="1.0"?>
-<!-- Chassis and drivetrain: chassis_link (the root frame and the body: chassis box and,
-     in sensorsuite_front.xacro, every sensor; Nav2, the EKF and li_slam's static TF all
-     use it) -> body_tilt_joint -> drivetrain_link -> left/right shafts -> four struts ->
-     steering -> wheels.
-     The body sits on the shaft axis like on a knife edge and tips (usually back down,
-     front up). body_tilt_joint carries that tilt: app_body_tilt publishes the body's
-     pitch from the GQ7 on /joint_states, assuming the drivetrain stands level.
-     chassis_link's origin is on the shaft pivot axis, midway between the two shafts
-     (2026-11-19; the sim model had it 0.114 m higher, 2 cm above the chassis box).
-     Other values come from the morpheus_description model in erc-26-simulation.
-     The shaft, steering and wheel joints publish TF only once something sends
-     /joint_states (issue #15). Don't name a frame base_link: li_slam owns that name
-     (odom -> base_link = lidar pose, see app_nav_master/config/odometry/li_slam). -->
+<!-- chassis_link (body, origin on the shaft axis) -> body_tilt_joint -> drivetrain_link
+     -> shafts -> struts -> steering -> wheels.
+     Don't name a frame base_link: li_slam owns it (odom -> base_link = lidar pose). -->
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
 
-  <!-- A link drawn with <part>.dae, colliding with <part>.stl. -->
   <xacro:macro name="mesh_link" params="name part vis_xyz vis_rpy col_xyz col_rpy
                                          mass com ixx ixy ixz iyy iyz izz">
     <link name="${name}">
@@ -93,9 +82,7 @@
   </link>
 
   <!-- ===================== body tilt ===================== -->
-  <!-- drivetrain_link: on the shaft axis, level when the body is level. The joint value
-       is the body's pitch (ROS convention: positive = nose down), so with the axis
-       along -y the drivetrain is turned back by that pitch and stays level. -->
+  <!-- joint value = body pitch (app_body_tilt) -->
   <link name="drivetrain_link"/>
   <joint name="body_tilt_joint" type="revolute">
     <origin rpy="0 0 0" xyz="0 0 0"/>

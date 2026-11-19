@@ -1,12 +1,6 @@
 <?xml version="1.0"?>
-<!-- Morpheus rover, navigation model. Started from erc-26-simulation's
-     morpheus_description robot.xacro (generated robot.urdf, 2026-11). Arm, drill,
-     sample boxes, zed_mini and the Gazebo/ros2_control blocks are left out; their
-     meshes stay in 01_robot_description/meshes.
-     Render: xacro robot.urdf.xacro > /tmp/robot.urdf -->
+<!-- Morpheus rover, navigation model (from erc-26-simulation's morpheus_description). -->
 <robot name="morpheus_rover" xmlns:xacro="http://www.ros.org/wiki/xacro">
-  <!-- Mesh URIs as in the sim model (morpheus_description isn't built here, so RViz
-       shows no meshes until this points at a package that ships them). -->
   <xacro:property name="mesh_dir" value="package://morpheus_description/urdf/01_robot_description/meshes"/>
 
   <xacro:include filename="base_link.xacro"/>
