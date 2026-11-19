@@ -25,6 +25,7 @@ services:
         app_LIO_SAM/li_slam_ros2
         gpu_voxel_filter
         app_body_tilt
+        app_wheel_joint_states
     volumes:
       - ..:/workspace/src:ro
       - nav_master_build:/workspace/build

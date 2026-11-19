@@ -122,7 +122,7 @@ flowchart TD
   chassis -->|"app_robot_state_publisher · sensorsuite_front.xacro"| zed
   chassis -->|"app_robot_state_publisher · sensorsuite_front.xacro"| imu
   chassis -->|"app_body_tilt · body pitch from GQ7 (body_tilt_joint)"| drivetrain["drivetrain_link"]
-  drivetrain -->|"app_robot_state_publisher · base_link.xacro"| links
+  drivetrain -->|"app_robot_state_publisher · base_link.xacro + app_wheel_joint_states (/Motor_pos)"| links
   zed -->|"static_transform_publisher · identity"| zedcam
 ```
 
@@ -147,6 +147,7 @@ What each package puts on the bus, and what it takes off it.
 | `app_aruco_detector` | `…/rect/image/compressed`<br>`…/rect/camera_info` | `aruco_detections` |
 | `app_robot_state_publisher` | `config/URDF/robot.urdf.xacro` | `/tf`<br>`/tf_static` |
 | `app_body_tilt` | `/imu/data` (GQ7 orientation) | `/joint_states` (`body_tilt_joint`: body pitch on the drivetrain) |
+| `app_wheel_joint_states` | `/Motor_pos` (rover wheels_cpp, MD80 positions) | `/joint_states` (steering, wheel and shaft joints) |
 | `app_LIO_SAM` | `/ouster/points`<br>`/ouster/imu` | `/map`, `/modified_map` (PointCloud2)<br>`/path`, `/current_pose`, `/odom`<br>TF `map → chassis_link` |
 | `app_fast_livo2` | — hardware (ZED2i + Ouster, composed in-process) | FAST-LIVO2 odometry + map (extrinsics not yet calibrated — not wired into the runtime graph above) |
 | `app_zenoh_bridge` | — DDS bridge | carries the graph over unreliable WiFi |
