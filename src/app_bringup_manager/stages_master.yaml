@@ -39,6 +39,8 @@ stages:
          name: gnss_static_tf, params: robot/gnss_tf.yaml}
       - {package: app_body_tilt, plugin: app_body_tilt::BodyTilt,
          name: body_tilt, params: robot/body_tilt.yaml}
+      - {package: app_wheel_joint_states, plugin: app_wheel_joint_states::WheelJointStates,
+         name: wheel_joint_states, params: robot/wheel_joint_states.yaml}
     checks:
       - {type: topic_exists, topic: /robot_description}
       - {type: tf, parent: chassis_link, child: os_sensor, static: true}
