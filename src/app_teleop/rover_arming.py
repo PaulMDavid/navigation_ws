@@ -41,6 +41,8 @@ class RoverArming(Node):
         self.declare_parameter('mux_node', '/teleop_mux')
         self.declare_parameter('ackermann_max_angular', 1.0)  # rad/s
         self.declare_parameter('crab_max_angular', 0.1)       # rad/s
+        self.declare_parameter('ackermann_angular_sign', -1.0)  # robot_control's Ackermann-only negates angular.z
+        self.declare_parameter('crab_angular_sign', 1.0)
         self.declare_parameter('joy_topic', '/joy')
 
         self.lock = threading.Lock()   # the phone node's callbacks run in another thread
@@ -104,7 +106,8 @@ class RoverArming(Node):
                 if pressed:
                     self.get_logger().info(f'/joy press button {pressed[0]}')
             elif kind == 'steering':
-                self.want_max_angular = self.get_parameter(f'{value}_max_angular').value
+                self.want_max_angular = (self.get_parameter(f'{value}_max_angular').value,
+                                         self.get_parameter(f'{value}_angular_sign').value)
                 self.get_logger().info(f'steering {value}: teleop_mux max_angular -> {self.want_max_angular}')
                 self.push_max_angular()
         if events:
@@ -118,17 +121,17 @@ class RoverArming(Node):
             self.get_logger().warn('teleop_mux set_parameters not available, retrying',
                                    throttle_duration_sec=10.0)
             return
-        value = float(self.want_max_angular)
+        value = self.want_max_angular
         req = SetParameters.Request(parameters=[Parameter(
-            name='max_angular',
-            value=ParameterValue(type=ParameterType.PARAMETER_DOUBLE, double_value=value))])
+            name=name, value=ParameterValue(type=ParameterType.PARAMETER_DOUBLE, double_value=float(v)))
+            for name, v in (('max_angular', value[0]), ('angular_sign', value[1]))])
         self.param_call = self.param_client.call_async(req)
         self.param_call.add_done_callback(lambda f, v=value: self.on_param_done(f, v))
 
     def on_param_done(self, future, value):
         self.param_call = None
         try:
-            ok = future.result().results[0].successful
+            ok = all(r.successful for r in future.result().results)
         except Exception as e:  # noqa: BLE001 - any failure means retry
             self.get_logger().warn(f'setting teleop_mux max_angular failed: {e}')
             return
