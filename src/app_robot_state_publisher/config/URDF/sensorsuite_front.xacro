@@ -9,7 +9,7 @@
   <xacro:property name="lidar_rpy" value="0.0 0.0 0.0"/>
   <xacro:property name="zed2i_xyz" value="0.39 0.0 0.0637"/>
   <xacro:property name="zed2i_rpy" value="0.0 0.0 0.0"/>
-  <xacro:property name="imu_xyz"   value="0.15 0.0 0.10"/>
+  <xacro:property name="imu_xyz"   value="0.0 0.0 -0.006"/>
   <xacro:property name="imu_rpy"   value="0 0 0"/>
 
   <!-- TODO (2026-11-19):
