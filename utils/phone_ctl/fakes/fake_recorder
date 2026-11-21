@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+# fake `ros2 bag record` + record_watch.py for the shell tests: reads the bag name and the
+# topics from the recorder command record_drive.sh passes to `docker run … -c CMD`, writes
+# the record log, grows <bag>_0.db3, keeps <bag>_watch.json fresh (topics in
+# $FAKE/silent_topics never get a message). SIGINT: after $FAKE_CLOSE_DELAY s, "compress"
+# the chunk, write metadata.yaml, exit 0. FAKE_REC_CRASH=1: exits at once.
+source "$(dirname "$0")/_ev"
+bags=$1; cmd=$2
+bag=$(sed -n 's|.*ros2 bag record -o /bags/\([^ ]*\) .*|\1|p' <<<"$cmd" | head -n 1)
+read -r -a topics <<<"$(sed -n 's|.*--max-bag-size [0-9]* \(.*\) >/bags/.*|\1|p' <<<"$cmd" | tail -n 1)"
+d=$bags/$bag; log=$bags/${bag}_record.log
+ev "recorder start $bag ${#topics[@]} topics"
+if [[ -n ${FAKE_REC_CRASH:-} ]]; then echo "[ERROR] [rosbag2_storage]: boom: no space left" > "$log"; exit 1; fi
+mkdir -p "$d"
+echo "stdin is not a terminal device. Keyboard handling disabled." > "$log"
+for t in "${topics[@]}"; do
+  grep -qxF -- "$t" "$FAKE/unpublished" 2>/dev/null || echo "[INFO] [rosbag2_recorder]: Subscribed to topic '$t'" >> "$log"
+done
+start=$(date +%s.%N)
+stop=0
+trap 'stop=1' INT
+while (( ! stop )); do
+  head -c 200000 /dev/zero >> "$d/${bag}_0.db3"
+  now=$(date +%s.%N)
+  {
+    printf '{"t": %s, "start": %s, "mbps": 1.0, "watched": [], "unloadable": [], "topics": {' "$now" "$start"
+    sep=''
+    for t in "${topics[@]}"; do
+      grep -qxF -- "$t" "$FAKE/silent_topics" 2>/dev/null && continue
+      printf '%s"%s": {"last": %s, "count": 10}' "$sep" "$t" "$now"; sep=', '
+    done
+    printf '}}\n'
+  } > "$bags/${bag}_watch.json.tmp" && mv "$bags/${bag}_watch.json.tmp" "$bags/${bag}_watch.json"
+  sleep 0.2 & wait $!
+done
+ev "recorder SIGINT $bag"
+sleep "${FAKE_CLOSE_DELAY:-0.5}"
+[[ -n ${FAKE_NO_METADATA:-} ]] && exit 0
+mv "$d/${bag}_0.db3" "$d/${bag}_0.db3.zstd"
+dur=$(awk "BEGIN{printf \"%d\", ($(date +%s.%N) - $start) * 1e9}")
+cat > "$d/metadata.yaml" <<YAML
+rosbag2_bagfile_information:
+  version: 5
+  storage_identifier: sqlite3
+  duration:
+    nanoseconds: $dur
+  message_count: 1234
+  topics_with_message_count: []
+  compression_format: zstd
+  compression_mode: FILE
+  relative_file_paths:
+    - ${bag}_0.db3.zstd
+YAML
+ev "recorder closed $bag"

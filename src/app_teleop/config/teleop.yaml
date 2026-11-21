@@ -8,10 +8,21 @@ teleop_mux:
     nav_timeout: 0.5           # s without a Nav2 command -> zero
     # Operator speed limits; no client can exceed them. Placeholders until checked
     # against morpheus_control's own limits on the rover.
-    max_linear: 0.5            # m/s
-    max_angular: 0.1           # rad/s; tuned 2026-11-07 on the rover (1.0 steered ~5x too hard in Ackermann mode)
+    max_linear: 0.8            # m/s, hard cap on every operator input; 0.8 allows gear 4 (was 0.5); conservative placeholder, tune in field (#37)
+    max_angular: 0.1           # rad/s, final clamp on every operator input; tuned 2026-11-07 on the rover (1.0 steered ~5x too hard in Ackermann mode).
+                               # rover_arming overrides it per steering mode (1.0 Ackermann, 0.1 crab)
     nav_topic: /cmd_vel_auto   # Nav2's velocity smoother output
     out_topic: /cmd_vel        # morpheus_control on the rover subscribes here
+    # Stick input /teleop/<source>/stick: gears, ramp, speed-dependent steering (README
+    # "Gears and speed-dependent steering"). All conservative placeholders, tune in field (#37).
+    gear_speeds: [0.15, 0.30, 0.50, 0.80]  # m/s at full throttle, gears 1..4 (0.54/1.08/1.8/2.88 km/h); conservative placeholder, tune in field (#37)
+    accel: 0.3                 # m/s^2 while |v| grows; conservative placeholder, tune in field (#37)
+    decel: 0.5                 # m/s^2 while |v| shrinks (stick released, downshift, reversing); conservative placeholder, tune in field (#37)
+    a_lat_max: 0.5             # m/s^2 lateral acceleration limit, kappa_max = a_lat_max / v^2; conservative placeholder, tune in field (#37)
+    min_turn_radius: 1.0       # m, full-lock curvature 1/min_turn_radius at low speed; conservative placeholder, tune in field (#37) (measure the real Ackermann lock)
+    steer_rate: 2.0            # 1/s, steer moves at most this per second (centre -> full lock 0.5 s); conservative placeholder, tune in field (#37)
+    odom_topic: /odom_wheels   # nav_msgs/Odometry, twist.twist.linear.x -> speed_meas in /teleop/state; conservative placeholder, tune in field (#37)
+    odom_timeout: 0.5          # s; older odometry -> speed_meas null; conservative placeholder, tune in field (#37)
 
 # teleop_camera: the phone app's camera page
 teleop_camera:

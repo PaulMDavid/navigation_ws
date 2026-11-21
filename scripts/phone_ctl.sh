@@ -10,6 +10,8 @@
 #   status        every check, starts nothing
 #   zero <ids>    re-zero steering MD80s (ids from 11 12 13 14), restart wheels, reset rover_arming
 #   log <step>    last ~50 log lines of preflight|teleop|rover_link|wheels|camera
+#   record …      bag recording on orintwo's NVMe: presets|topics|start|stop|status, handed to
+#                 scripts/record/record_drive.sh (issue #29)
 #
 # Output: one JSON object per line, streamed as steps run,
 #   {"step": "wheels", "state": "running|ok|fail|warn|skipped", "reason": "...", "t": 12.3}
@@ -43,43 +45,10 @@ declare -A container=([app_teleop]=app_teleop_container [app_foxglove_bridge]=ap
 steps=(preflight teleop rover_link wheels camera)
 ids_ok=(11 12 13 14)
 
-start_us=${EPOCHREALTIME/./}
+# JSON-lines output (emit, done_line, refuse), take_lock, running, lastline, set_ck, probe
+source "$(dirname "${BASH_SOURCE[0]}")/phone_ctl_lib.sh"
 
-# ---------- output ----------
-jstr() {  # JSON string body: escape \ " and whitespace controls, drop other control chars
-  local LC_ALL=C s=$1
-  s=${s//\\/\\\\}; s=${s//\"/\\\"}
-  s=${s//$'\n'/\\n}; s=${s//$'\r'/\\r}; s=${s//$'\t'/\\t}
-  s=${s//[$'\001'-$'\037']/}
-  printf '%s' "$s"
-}
-elapsed() { local d=$(( (${EPOCHREALTIME/./} - start_us) / 100000 )); printf '%d.%d' $((d / 10)) $((d % 10)); }
-emit() {  # step state reason [extra json]
-  printf '{"step": "%s", "state": "%s", "reason": "%s", "t": %s%s}\n' \
-    "$1" "$2" "$(jstr "$3")" "$(elapsed)" "${4:+, $4}"
-}
-done_line() { printf '{"done": true, "ok": %s}\n' "$1"; [[ $1 == true ]]; exit $?; }
-refuse() { emit command fail "refused: $1"; printf '{"done": true, "ok": false}\n'; exit 64; }
-
-# ---------- helpers ----------
 compose() { (cd "$repo/src" && timeout "$compose_timeout" docker compose -p "$project" "$@"); }
-running() { [[ $(docker inspect -f '{{.State.Running}}' "$1" 2>/dev/null) == true ]]; }
-lastline() { local l; l=$(printf '%s\n' "$1" | sed '/^[[:space:]]*$/d' | tail -n 1); printf '%s' "${l:-$2}"; }
-
-# probe <check> [args]: one-shot ROS check inside app_teleop_container (src/app_teleop/phone_probe.py).
-# Sets P_OK (0/1) and P_DETAIL.
-probe() {
-  local out
-  if ! running app_teleop_container; then P_OK=1; P_DETAIL='app_teleop not running'; return 1; fi
-  out=$(timeout 60 docker exec app_teleop_container /ros_entrypoint.sh \
-          python3 app_teleop/phone_probe.py "$@" 2>&1)
-  out=$(printf '%s\n' "$out" | sed -n '/^\(ok\|fail\)\( \|$\)/p' | tail -n 1)
-  case $out in
-    ok*)   P_OK=0; P_DETAIL=${out#ok }; return 0 ;;
-    fail*) P_OK=1; P_DETAIL=${out#fail }; return 1 ;;
-    *)     P_OK=1; P_DETAIL='probe gave no answer'; return 1 ;;
-  esac
-}
 
 ssh_opts=(-i "$rover_key" -o BatchMode=yes -o IdentitiesOnly=yes -o ConnectTimeout=5
           -o StrictHostKeyChecking=accept-new -o ServerAliveInterval=5 -o ServerAliveCountMax=3)
@@ -97,9 +66,6 @@ rover_status() {
   done <<<"$out"
   return 0
 }
-
-# result of a check: CK_STATE + CK_REASON
-set_ck() { CK_STATE=$1; CK_REASON=$2; [[ $1 == ok || $1 == warn ]]; }
 
 # ---------- checks ----------
 check_preflight() {
@@ -264,12 +230,6 @@ step() {
   [[ $CK_STATE == ok || $CK_STATE == warn || $CK_STATE == skipped ]]
 }
 
-take_lock() {
-  exec 9>"$lock" || refuse "can't open lock $lock"
-  flock -n 9 || { emit command fail "busy: another phone_ctl command is running"
-                  printf '{"done": true, "ok": false}\n'; exit 75; }
-}
-
 # ---------- verbs ----------
 do_up() {
   local s failed=''
@@ -361,11 +321,19 @@ do_log() {
 
 # ---------- command line ----------
 if [[ -n ${SSH_ORIGINAL_COMMAND+x} ]]; then cmd=$SSH_ORIGINAL_COMMAND; else cmd="$*"; fi
-[[ $cmd =~ ^[a-z0-9_\ ,]*$ ]] || refuse "unexpected characters in command"
+usage='up|stop|status|camera|zero <ids>|log <step>|record <presets|topics|start|stop|status>'
+# `record start` takes topic names (+/Motor_pos -/zed2i/…): / + - and capitals only there
+if [[ $cmd =~ ^\ *record( |$) ]]; then
+  [[ $cmd =~ ^[A-Za-z0-9_/+\ ,-]*$ ]] || refuse "unexpected characters in command"
+else
+  [[ $cmd =~ ^[a-z0-9_\ ,]*$ ]] || refuse "unexpected characters in command"
+fi
 cmd=${cmd//,/ }
 read -r -a words <<<"$cmd"
-(( ${#words[@]} )) || refuse "no command (up|stop|status|camera|zero <ids>|log <step>)"
+(( ${#words[@]} )) || refuse "no command ($usage)"
 verb=${words[0]}; args=("${words[@]:1}")
+# record_drive.sh checks its own arguments, takes its own lock and prints the same JSON lines
+[[ $verb == record ]] && exec bash "$(dirname "${BASH_SOURCE[0]}")/record/record_drive.sh" "${args[@]}"
 
 case $verb in
   up|stop|status|camera)
@@ -380,14 +348,14 @@ case $verb in
   log)
     (( ${#args[@]} == 1 )) && [[ " ${steps[*]} " == *" ${args[0]} "* ]] \
       || refuse "log needs one step from ${steps[*]}" ;;
-  *) refuse "unknown verb $verb (up|stop|status|camera|zero <ids>|log <step>)" ;;
+  *) refuse "unknown verb $verb ($usage)" ;;
 esac
 
 case $verb in
-  up)     take_lock; do_up ;;
-  stop)   take_lock; do_stop ;;
-  camera) take_lock; do_camera ;;
-  zero)   take_lock; do_zero ;;
+  up)     take_lock "$lock"; do_up ;;
+  stop)   take_lock "$lock"; do_stop ;;
+  camera) take_lock "$lock"; do_camera ;;
+  zero)   take_lock "$lock"; do_zero ;;
   status) do_status ;;
   log)    do_log "${args[0]}" ;;
 esac

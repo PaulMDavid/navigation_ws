@@ -48,6 +48,37 @@ Nav2's velocity smoother publishes `/cmd_vel_auto` instead of `/cmd_vel`, and
 `/cmd_vel` (`stages_master.yaml`, `app_nav2/launch/navigation.launch.py`). Without this
 container running, Nav2's commands reach nothing; the bringup's rover stage checks for it.
 
+## Gears and speed-dependent steering (stick input, #37)
+
+The phone app (1.7+) sends a normalized stick instead of a `Twist` in m/s:
+
+| Topic (phone domain) | Type | Meaning |
+| --- | --- | --- |
+| `/teleop/<source>/stick` | `geometry_msgs/Twist` | `linear.x` throttle, `angular.z` steer (+ = left), both in [-1, 1], 10 Hz (deadman as for `cmd_vel`) |
+| `/teleop/<source>/gear` | `std_msgs/String` | `up`, `down`, or `1`..`4` |
+
+`teleop_drive.py` turns it into `/cmd_vel` at 20 Hz:
+
+- target speed = throttle × `gear_speeds[gear]` (0.15 / 0.30 / 0.50 / 0.80 m/s), ramped
+  at `accel` 0.3 m/s² up and `decel` 0.5 m/s² down; reversing brakes to 0 first.
+- curvature κ = steer × κ_max(v), κ_max = min(1 / `min_turn_radius`, `a_lat_max` / v²),
+  so lateral acceleration stays ≤ `a_lat_max` (0.5 m/s²). Steer moves at most
+  `steer_rate` 2.0 /s. ω = v·κ, then the `max_angular` clamp, then `angular_sign`.
+- Deadman, STOP, mode or source change: speed and steer jump to 0 at once (no ramp).
+  STOP and source change also put the gear back to 1; so does boot.
+- For each source the newer of `stick` and `cmd_vel` wins, so the ground PC's plain Twist
+  still works.
+- `angular_sign`: robot_control's Ackermann-only mode negates `angular.z`, so
+  `rover_arming` sets −1 there and +1 in crab (alongside `max_angular` 1.0 / 0.1).
+
+`/teleop/state` gains `gear`, `gears`, `input` (`stick` | `cmd_vel` | null), `v_target`,
+`kappa_max`, `steer_limited`, `a_lat_max`, and `speed_meas` / `speed_meas_age` from
+`/odom_wheels` (null if older than `odom_timeout`). The app shows km/h from `speed_meas`
+and refuses to drive when `gear` is missing (old mux).
+
+All values are conservative placeholders, to be tuned in the field (#37).
+`min_turn_radius` 1.0 m is a guess; measure the real Ackermann lock.
+
 ## Camera for the phone
 
 `teleop_camera.py` (compose service `app_teleop_camera`, phone source only) relays a
@@ -417,6 +448,179 @@ password and sudo once, for linger). Later changes to the rover files:
 - [ ] `zero 14` on one hand-aligned wheel; the wheel tracks straight after.
 - [ ] `orintwo.local` resolves on the hotspot.
 
+## Recording from the phone (`phone_ctl.sh record …`)
+
+> ⚠️ **Untested on hardware**, and **`scripts/record/record_drive.sh` is rebuilt, not
+> copied**: the working original is `orintwo:/mnt/ssd/pdavid/bags/record_drive.sh`
+> (2026-11-14), which couldn't be read. This one comes from its 2026-11-12 copy
+> (laptop `/mnt/data_drive/orintwo_bags/2026-11-12/record_drive.sh`), the 2026-11-14 bag's
+> `metadata.yaml` and record log, and issue #29. **Diff it against the original on orintwo
+> and merge what is missing** before relying on it. Only the tests in `utils/record` have run.
+
+Same ssh key and JSON lines as above; `phone_ctl.sh record <verb> …` hands over to
+`scripts/record/record_drive.sh <verb> …` (also usable by hand on orintwo:
+`scripts/record/record_drive.sh status once | jq .`).
+
+| verb | does |
+| --- | --- |
+| `record presets` | groups + presets from `scripts/record/presets.yaml` |
+| `record topics` | every live topic: type, Hz and MB/s over 3 s (probe in `app_teleop_container`) |
+| `record start <preset> [+/topic …] [-/topic …]` | start sensors if down, wait for them, record |
+| `record status [once]` | a status line every ~2 s while recording (`once`: one line) |
+| `record stop` | SIGINT the recorder, wait until the bag is closed, report it |
+
+**Recorder.** A throwaway `docker run --rm --init` container `rec_drive` from the ZED
+image `zed2i_rec:2026-11-14` (it has rosbag2; the microstrain image doesn't), `--network
+host --ipc host`, this repo's `src/config/dds/cyclonedds.xml` (DDS pinned to eno1),
+`ROS_DOMAIN_ID=0`, `/mnt/ssd/pdavid/bags` → `/bags`, `scripts/record` → `/navws_record`. The
+overlay `/mnt/ssd/pdavid/bags/.overlay_microstrain_msgs` goes first on `AMENT_PREFIX_PATH` +
+`LD_LIBRARY_PATH` so the `/mip/*` types load. `ros2 bag record -s sqlite3` (no MCAP plugin in
+the images), `--compression-mode file --compression-format zstd`, `--max-bag-size 2000000000`
+(2 GB chunks: the 2026-11-14 chunks decompress to 2.000 GB; 40 min = 17 chunks),
+`--qos-profile-overrides-path scripts/record/qos_latched_overrides.yaml` (latched
+`/tf_static`, `/robot_description`, `/zed2i/zed2i_description`). Bag:
+`/mnt/ssd/pdavid/bags/drive_YYYY-MM-DD_HHMMSS/`, next to it `<bag>_record.log`,
+`<bag>_record.topics` (the selection), `<bag>_watch.json`; `.record_current` names the
+last started bag. `scripts/record/record_watch.py` runs in the same container (it has every
+type the bag has) and keeps `<bag>_watch.json` up to date for `status`.
+
+**Sensors** (`sensors:` in presets.yaml). For the selected topics, `start` runs `docker
+start app_microstrain_container` (GQ7) and `docker start zed2i_rec` (after `docker stop
+app_zed2i_camera`, same camera) if they are not running, then waits up to 90 s until the
+check topics (`/imu/data`, `/gnss_1/llh_position`, ZED left + right compressed,
+`/odom_wheels`) have messages in an **8 s** window (4 s gave false NO MESSAGES). If some stay
+silent it records anyway (`warn`); topics that appear later are picked up. The wheels
+(rover) and the Ouster are not started by `record`.
+
+**Power cut mid-bag.** The bag has no `metadata.yaml`; `record status` lists it in
+`unclosed`. Recover on orintwo with the same image:
+
+```bash
+docker run --rm -v /mnt/ssd/pdavid/bags:/bags --entrypoint bash zed2i_rec:2026-11-14 -c \
+  'source /opt/ros/humble/setup.bash; ros2 bag reindex -s sqlite3 /bags/<bag>'
+```
+
+(tested on a SIGKILLed bag in `utils/record`; the chunk that was open stays uncompressed `.db3`).
+
+### JSON contract of the record verbs
+
+This is what the app (issue #29, Record page) parses. Common to all verbs:
+
+- One JSON object per line, `{"step": str, "state": str, "reason": str, "t": float, …extra}`,
+  `state` ∈ `running|ok|warn|fail|skipped`, `t` = s since the command started; the last line
+  is `{"done": true, "ok": bool}`.
+- Units: MB = 10⁶ bytes, GB = 10⁹ bytes, MB/s = 10⁶ bytes/s, `_s` seconds, `_h` hours.
+- Exit codes: `0` ok, `1` failed (see the `fail` line), `64` refused (bad verb/arguments/
+  characters; one line `{"step": "command", "state": "fail", "reason": "refused: …"}`,
+  nothing ran), `75` busy (`start`/`stop` while another `start`/`stop` runs; reason
+  starts with `busy`). Record has its own lock, so `up` and `record start` don't block each other.
+- Allowed characters in a record command: `A-Z a-z 0-9 _ / + - , space`; commas = spaces.
+
+**`record presets`** (instant). All lines `"step": "presets", "state": "ok"`, in this order:
+
+```json
+{"step": "presets", "state": "ok", "reason": "group gq7", "t": 0.1, "group": {"name": "gq7", "label": "GQ7 IMU/GNSS/EKF", "topics": ["/imu/data", "…"]}}
+{"step": "presets", "state": "ok", "reason": "preset drive", "t": 0.1, "preset": {"name": "drive", "label": "Drive", "default": true, "groups": ["gq7", "zed_cam", "zed_imu", "wheels", "misc"], "topics": ["/imu/data", "…"]}}
+{"step": "presets", "state": "ok", "reason": "quiet_ok", "t": 0.1, "quiet_ok": ["/tf_static", "…"]}
+{"done": true, "ok": true}
+```
+
+One `group` line per group (a topic is in exactly one group), then one `preset` line per
+preset (`topics` = its groups' topics in order, deduplicated; exactly one has
+`"default": true`, `drive`), then `quiet_ok`: topics `status` never reports as silent
+(latched / event-driven). A broken presets.yaml gives one `fail` line, exit 1.
+
+**`record topics`** (≈ 8–10 s: 2 s discovery + 3 s window + docker exec; killed after 43 s):
+
+```json
+{"step": "topics", "state": "running", "reason": "sampling every live topic for 3 s", "t": 0.0}
+{"step": "topics", "state": "ok", "reason": "/imu/data", "t": 7.9, "topic": {"name": "/imu/data", "type": "sensor_msgs/msg/Imu", "hz": 499.7, "mbps": 0.1612}}
+{"step": "topics", "state": "ok", "reason": "/mip/ekf/status", "t": 7.9, "topic": {"name": "/mip/ekf/status", "type": "microstrain_inertial_msgs/msg/MipFilterStatus", "hz": null, "mbps": null}}
+{"step": "topics", "state": "ok", "reason": "52 topics; 52 topics, 31 sampled for 3 s", "t": 7.9, "count": 52}
+{"done": true, "ok": true}
+```
+
+One line with a `topic` object per live topic, sorted by name, then a summary line with
+`count` (no `topic` key). `type` = first type of the topic in the graph. `hz` = messages / window;
+`mbps` = serialized bytes / window / 10⁶. `hz`/`mbps` are `null` when `app_teleop`'s image
+can't load the type (microstrain, zed_msgs); `0.0` = no message in the window (latched topics
+always show 0). Failure (e.g. `app_teleop not running`): a `fail` line, exit 1.
+
+**`record start <preset> [+/topic …] [-/topic …]`**: `+/t` adds a topic (any valid
+name, not necessarily in a preset), `-/t` removes one of the preset's (refused if not
+selected). The app sends the preset plus the differences from the full list. Steps
+`preflight` → `sensors` → `record`, each a `running` line, maybe more `running` lines, then
+its result line:
+
+| step | result | extra keys | notes |
+| --- | --- | --- | --- |
+| `preflight` | `ok` / `fail` | `free_gb` (float, when df ran) | fail reasons start with `already recording <bag>`, `only X GB free on /mnt/ssd (need 20)`, `/mnt/ssd not mounted`, `DDS config missing`; then `sensors` and `record` are `skipped`, exit 1 |
+| `sensors` | `ok` / `warn` | `silent` ([str]: check topics without messages) | `running` lines: `<sensor>: docker stop/start <container>`, `waiting for <topics> (8 s window)` every ~10 s; `warn` = recording anyway (also when `app_teleop` is down so nothing can be checked) |
+| `record` | `ok` / `fail` | ok: `bag` (str), `preset` (str), `subscribed` (int, topics the recorder had subscribed after 8 s), `topics` ([str], the selection in order) | fail: `docker run failed: …`, `recorder exited: <last log line>` |
+
+```json
+{"step": "preflight", "state": "ok", "reason": "412.3 GB free on /mnt/ssd", "t": 0.1, "free_gb": 412.3}
+{"step": "sensors", "state": "running", "reason": "zed: docker start zed2i_rec", "t": 0.3}
+{"step": "sensors", "state": "warn", "reason": "no messages after 90 s: /odom_wheels; recording anyway (topics are picked up when they appear)", "t": 97.2, "silent": ["/odom_wheels"]}
+{"step": "record", "state": "ok", "reason": "recording drive_2026-11-20_130412: 52/53 topics subscribed (others are picked up when they appear)", "t": 105.4, "bag": "drive_2026-11-20_130412", "preset": "drive", "subscribed": 52, "topics": ["/imu/data", "…"]}
+{"done": true, "ok": true}
+```
+
+Takes ≥ 17 s when sensors are up (8 s check + 8 s settle), up to ~2 min when they must start.
+`done.ok` is true iff `record` is `ok`.
+
+**`record status [once]`**: one `"step": "status"` line every ~2 s, `state` `ok` or
+`warn` (= `silent` or `unclosed` not empty). Ends (then `{"done": true, "ok": true}`, exit 0)
+when not recording (after one line), when the recording ends (last line has
+`"recording": false`), after 1 h (re-attach), or when ssh closes. `once`: a single line.
+
+```json
+{"step": "status", "state": "warn", "reason": "recording drive_2026-11-20_130412 00:12:41, 8400.2 MB, 11.03 MB/s, 412.3 GB free; no messages for 8 s: /zed2i/zed_node/left/color/rect/image/compressed", "t": 0.4, "recording": true, "bag": "drive_2026-11-20_130412", "preset": "drive", "elapsed_s": 761, "size_mb": 8400.2, "rate_mbps": 11.03, "input_mbps": 12.1, "free_gb": 412.3, "left_h": 10.4, "topics": 53, "silent": ["/zed2i/zed_node/left/color/rect/image/compressed"], "unwatched": [], "unclosed": []}
+```
+
+| key | type | meaning |
+| --- | --- | --- |
+| `recording` | bool | recorder container runs |
+| `bag` | str / null | current bag; when not recording the last started one (null if none) |
+| `preset` | str / null | preset it was started with |
+| `elapsed_s` | int / null | since `start` (null when not recording) |
+| `size_mb` | float / null | `du -sb` of the bag dir (on disk, compressed chunks + the open one) |
+| `rate_mbps` | float / null | `size_mb / elapsed_s`: on-disk average since start (drops ~1/3 once chunks get compressed) |
+| `input_mbps` | float / null | serialized message bytes received over the last 8 s (record_watch.py), before compression |
+| `free_gb` | float / null | `df` avail on `/mnt/ssd` |
+| `left_h` | float / null | `free / rate_mbps`, hours; null while the bag is empty |
+| `topics` | int | number of selected topics (0 when not recording) |
+| `silent` | [str] / null | selected topics without a message for 8 s, minus `quiet_ok` and `unwatched`; **null** = no verdict yet (watcher younger than 8 s, or its file older than 5 s) |
+| `unwatched` | [str] | selected topics whose type record_watch.py can't load: never reported silent |
+| `unclosed` | [str] | bag dirs in `bags/` with chunks but no `metadata.yaml` (not the one being written): recover with `ros2 bag reindex` |
+
+**`record stop`**:
+
+```json
+{"step": "stop", "state": "running", "reason": "SIGINT to rec_drive; waiting for drive_2026-11-20_130412 to close", "t": 0.1, "bag": "drive_2026-11-20_130412"}
+{"step": "stop", "state": "running", "reason": "closing drive_2026-11-20_130412: compressing the last chunk, writing metadata", "t": 10.2}
+{"step": "stop", "state": "ok", "reason": "drive_2026-11-20_130412 closed: 20012.3 MB, 00:40:53, 2443615 messages in 17 files", "t": 14.8, "bag": "drive_2026-11-20_130412", "size_mb": 20012.3, "duration_s": 2452.9, "messages": 2443615, "files": 17}
+{"done": true, "ok": true}
+```
+
+`running` lines every ~10 s while closing. Result: `ok` with `bag`, `size_mb`, `duration_s`
+(from metadata.yaml), `messages`, `files`; `ok` with `"recording": false` and reason
+`not recording` when nothing records (stop is idempotent); `fail` after 120 s still
+running (**not** killed: SIGKILL would leave the bag unclosed; send `record stop` again) or
+when the bag has no `metadata.yaml` afterwards (reason has the `ros2 bag reindex` line).
+
+**To do on hardware (@PaulMDavid):**
+- [ ] Diff the rebuilt `record_drive.sh` against the original on orintwo
+  (`/mnt/ssd/pdavid/bags/record_drive.sh`); merge anything missing (topics, sensor checks,
+  docker flags, container name `rec_drive`).
+- [ ] Record a short bag from the phone; check topics, size, rate, free-space numbers match `du`/`df`.
+- [ ] Stop closes the bag cleanly (`ros2 bag info` works).
+- [ ] `python3 -c 'import yaml'` works on orintwo's host (record_helper.py needs python3-yaml).
+- [ ] `record status` shows `/mip/*` as watched, not in `unwatched` (needs the overlay's Python
+  modules; record_drive.sh adds `<overlay>/local/lib/python3.10/dist-packages` and
+  `<overlay>/lib/python3.10/site-packages` to `PYTHONPATH`, a guess).
+- [ ] `record topics` from `app_teleop_container` sees the robot's topics (domain 0, eno1).
+
 ## Why the phone has its own DDS domain
 
 foxglove_bridge 3.6.0 (current Humble release) ignores `client_topic_whitelist`: a
@@ -486,7 +690,9 @@ camera page is open. `sudo scripts/teleop_source.sh ground` goes back to eduroam
 
 ## Tests
 
-`utils/teleop_link/`: the laptop stands in for orintwo and both links are driven
+`utils/record/`: `phone_ctl.sh record …` with fakes, plus the real recorder command, probe
+and watcher on loopback DDS. `utils/teleop_link/`: the laptop stands in for orintwo and both links are driven
 end to end, including the deadman and the bridge loophole. `utils/rover_arming/`: the
 /joy press sequencing and tracked state. `utils/nav_relay/`: the Autonav relay against fake
-SLAM / Nav2 / bringup manager.
+SLAM / Nav2 / bringup manager. `utils/teleop_gears/`: gears, ramp, curvature limit
+(pure Python) and the real `teleop_mux` driven over the phone domain.
