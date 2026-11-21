@@ -10,9 +10,14 @@
                                        sensor_msgs/CompressedImage rate (phone domain with --phone)
   rover_cmd CMD [--timeout S]          send CMD to rover_arming as the active source and wait
                                        until /teleop/rover_state shows it ran
+  topics [TOPIC...] [--window S] [--discover S]
+                                       every live topic (or only TOPIC...) with type, Hz and MB/s
+                                       over S s; one `topic {json}` line each before the ok line
 
 Prints one line, `ok <detail>` or `fail <reason>`, and exits 0 / 1. phone_ctl.sh reads
-that line; no JSON parsing needed on the host.
+that line; no JSON parsing needed on the host. `topics` prints one
+`topic {"name", "type", "hz", "mbps"}` line per topic first (scripts/record/record_drive.sh
+wraps them); hz/mbps are null when the type can't be loaded in this image.
 """
 import argparse
 import json
@@ -157,6 +162,59 @@ def check_rover_cmd(a):
         main.close()
 
 
+def check_topics(a):
+    """Type, Hz and MB/s (1e6 B/s, serialized size) of each topic over a.window seconds.
+    Raw subscriptions with sensor-data QoS (best effort, matches reliable and best-effort
+    publishers, nothing deserialized). Latched topics show 0 Hz: volatile, no history."""
+    from rclpy.qos import qos_profile_sensor_data
+    from rosidl_runtime_py.utilities import get_message
+    p = Probe()
+    try:
+        want = set(a.topics)
+        graph = {}
+
+        def found():
+            graph.clear()
+            graph.update({n: t[0] for n, t in p.node.get_topic_names_and_types() if t})
+            return want and want <= set(graph)
+        # discovery: wait for the listed topics, or a fixed time for "all"
+        p.spin_until(found, a.discover) if want else p.spin_until(lambda: False, a.discover)
+        found()
+        names = sorted(want or graph)
+        stats = {n: [0, 0] for n in names}
+        ok_types = set()
+        for n in names:
+            if n not in graph:
+                continue
+            try:
+                cls = get_message(graph[n])
+            except Exception:  # noqa: BLE001 - type not in this image (e.g. microstrain, zed_msgs)
+                continue
+
+            def cb(msg, s=stats[n]):
+                s[0] += 1
+                s[1] += len(msg)
+            p.node.create_subscription(cls, n, cb, qos_profile_sensor_data, raw=True)
+            ok_types.add(n)
+        p.spin_until(lambda: False, 0.5)          # let the subscriptions match
+        for s in stats.values():
+            s[:] = [0, 0]
+        t0 = time.monotonic()
+        p.spin_until(lambda: False, a.window)
+        dt = max(time.monotonic() - t0, 1e-3)
+    finally:
+        p.close()
+    for n in names:
+        row = {'name': n, 'type': graph.get(n), 'hz': None, 'mbps': None}
+        if n in ok_types:
+            row['hz'] = round(stats[n][0] / dt, 2)
+            row['mbps'] = round(stats[n][1] / dt / 1e6, 4)
+        print('topic ' + json.dumps(row), flush=True)
+    missing = sorted(want - set(graph))
+    return True, f'{len(names)} topics, {len(ok_types)} sampled for {a.window:g} s' + \
+        (f'; not in the graph: {" ".join(missing)}' if missing else '')
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest='check', required=True)
@@ -177,6 +235,11 @@ def main(argv=None):
     s.add_argument('cmd')
     s.add_argument('--timeout', type=float, default=5.0)
     s.set_defaults(fn=check_rover_cmd)
+    s = sub.add_parser('topics')
+    s.add_argument('topics', nargs='*')
+    s.add_argument('--window', type=float, default=3.0)
+    s.add_argument('--discover', type=float, default=2.0)
+    s.set_defaults(fn=check_topics)
     a = ap.parse_args(argv)
     try:
         ok, detail = a.fn(a)

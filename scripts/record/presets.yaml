@@ -1,0 +1,138 @@
+# Recording presets for scripts/record/record_drive.sh and `phone_ctl.sh record …` (issue #29).
+#
+# Where the topic names come from (nothing here was checked on the robot since):
+#   [bag]   published and recorded in orintwo's drive_2026-11-14_130343 (copy on the laptop,
+#           /mnt/data_drive/orintwo_bags/2026-11-14/, metadata.yaml): exact names + types.
+#   [1112]  in the TOPICS list of the 2026-11-12 14:32 copy of record_drive.sh
+#           (/mnt/data_drive/orintwo_bags/2026-11-12/record_drive.sh) but with NO messages
+#           (or not even subscribed) in the 2026-11-14 bag: nobody published them that day.
+#   [GUESS] not seen in any bag or script; from the issue text / repo configs.
+# The 2026-11-14 record_drive.sh on orintwo was not readable: diff it against this list.
+#
+# groups:   rows the phone shows with a checkbox; a topic belongs to one group.
+# presets:  groups (+ optional extra topics); `default: true` is preselected in the app.
+# sensors:  what record_drive.sh starts when a selected topic belongs to one of its groups,
+#           and which topics it waits for (8 s rate window) before recording.
+# quiet_ok: latched or event-driven topics that may stay silent: never reported as
+#           "no messages in the last 8 s" by `record status`.
+
+groups:
+  gq7:
+    label: GQ7 IMU/GNSS/EKF
+    topics:
+      - /imu/data                                   # [bag] 500 Hz
+      - /imu/data_raw                               # [bag]
+      - /gnss_1/llh_position                        # [bag]
+      - /gnss_1/velocity                            # [bag]
+      - /gnss_2/llh_position                        # [bag]
+      - /gnss_2/velocity                            # [bag]
+      - /ekf/odometry_earth                         # [bag] 25 Hz
+      - /ekf/odometry_map                           # [1112]
+      - /ekf/llh_position                           # [1112]
+      - /ekf/dual_antenna_heading                   # [bag]
+      - /ekf/status                                 # [bag]
+      - /mip/ekf/status                             # [bag] microstrain type (overlay)
+      - /mip/ekf/gnss_dual_antenna_status           # [bag]
+      - /mip/gnss_1/fix_info                        # [bag]
+      - /mip/gnss_2/fix_info                        # [bag]
+      - /mip/gnss_1/rf_error_detection              # [bag]
+      - /mip/gnss_2/rf_error_detection              # [bag]
+      - /mip/gnss_corrections/rtk_corrections_status  # [bag]
+      - /nmea                                       # [bag]
+      - /rtcm                                       # [bag]
+  zed_cam:
+    label: ZED left+right compr.
+    topics:
+      - /zed2i/zed_node/rgb/color/rect/image/compressed     # [bag] rgb = left, kept
+      - /zed2i/zed_node/rgb/color/rect/camera_info          # [bag]
+      - /zed2i/zed_node/left/color/rect/image/compressed    # [bag]
+      - /zed2i/zed_node/left/color/rect/camera_info         # [bag]
+      - /zed2i/zed_node/right/color/rect/image/compressed   # [bag]
+      - /zed2i/zed_node/right/color/rect/camera_info        # [bag]
+      - /zed2i/zed_node/depth/camera_info                   # [bag]
+  zed_imu:
+    label: ZED IMU/VIO/status
+    topics:
+      - /zed2i/zed_node/imu/data                    # [bag]
+      - /zed2i/zed_node/odom                        # [bag]
+      - /zed2i/zed_node/pose                        # [bag]
+      - /zed2i/zed_node/pose/status                 # [bag]
+      - /zed2i/zed_node/status/health               # [bag]
+      - /zed2i/zed_node/status/heartbeat            # [bag]
+      - /zed2i/zed2i_description                    # [bag] latched
+  wheels:
+    label: wheels / cmd_vel / tf
+    topics:
+      - /odom_wheels                                # [bag]
+      - /Motor_pos                                  # [bag]
+      - /Motor_vel                                  # [bag]
+      - /Motor_torq                                 # [bag]
+      - /Motor_temp                                 # [bag]
+      - /state                                      # [bag] subscribed, 0 messages
+      - /rover_wheels_status                        # [bag] subscribed, 0 messages
+      - /forward_velocity_controller/commands       # [bag]
+      - /forward_position_controller/commands       # [bag]
+      - /cmd_vel                                    # [bag]
+      - /manual_cmd_vel                             # [1112]
+      - /joy                                        # [1112]
+      - /teleop/state                               # [bag]
+      - /tf                                         # [bag]
+      - /tf_static                                  # [bag] latched
+      - /robot_description                          # [1112] latched; named in the issue
+  misc:
+    label: diagnostics / rosout
+    topics:
+      - /diagnostics                                # [bag]
+      - /rosout                                     # [bag]
+  ouster:
+    label: Ouster points
+    topics:
+      - /ouster/points                              # [GUESS] issue + app_fast_livo2 config
+      - /ouster/imu                                 # [GUESS] issue + app_fast_livo2 config
+
+presets:
+  drive:
+    label: Drive
+    default: true
+    groups: [gq7, zed_cam, zed_imu, wheels, misc]   # = the 2026-11-14 drive set (48 topics in the bag)
+  minimal:
+    label: Minimal (no cameras)
+    groups: [gq7, zed_imu, wheels, misc]            # [GUESS] "no cameras" = drive without zed_cam
+  lidar:
+    label: Drive + lidar
+    groups: [gq7, zed_cam, zed_imu, wheels, misc, ouster]
+
+sensors:
+  gq7:
+    groups: [gq7]
+    container: app_microstrain_container
+    check: [/imu/data, /gnss_1/llh_position]        # from the 2026-11-12 script
+  zed:
+    groups: [zed_cam, zed_imu]
+    container: zed2i_rec
+    stop_first: [app_zed2i_camera]                  # same camera, can't run both
+    # [GUESS] 2026-11-12 checked the rgb image; 2026-11-14 records left+right, so check both
+    check: [/zed2i/zed_node/left/color/rect/image/compressed,
+            /zed2i/zed_node/right/color/rect/image/compressed]
+  wheels:
+    groups: [wheels]
+    # no container: rover-wheels.service on the rover (`phone_ctl.sh up`)
+    check: [/odom_wheels]                           # from the 2026-11-12 script
+  ouster:
+    groups: [ouster]
+    # [GUESS] not started by the recorder (the issue doesn't ask); only waited for
+    check: [/ouster/points]
+
+quiet_ok:
+  - /tf_static
+  - /robot_description
+  - /zed2i/zed2i_description
+  - /state
+  - /rover_wheels_status
+  - /manual_cmd_vel
+  - /joy
+  - /ekf/odometry_map
+  - /ekf/llh_position
+  - /rosout
+  - /nmea          # ~0.7 Hz on 2026-11-14, gaps > 8 s possible
+  - /rtcm          # only with NTRIP corrections

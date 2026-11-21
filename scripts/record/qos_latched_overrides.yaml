@@ -1,0 +1,18 @@
+# rosbag2 --qos-profile-overrides-path for the latched topics (transient_local, so the recorder
+# gets the message published before it started). Copied 2026-11-14 from the 2026-11-12 copy of
+# orintwo:/mnt/ssd/pdavid/bags/qos_latched_overrides.yaml (laptop /mnt/data_drive/orintwo_bags/2026-11-12/).
+/tf_static:
+  history: keep_last
+  depth: 100
+  reliability: reliable
+  durability: transient_local
+/robot_description:
+  history: keep_last
+  depth: 1
+  reliability: reliable
+  durability: transient_local
+/zed2i/zed2i_description:
+  history: keep_last
+  depth: 1
+  reliability: reliable
+  durability: transient_local
