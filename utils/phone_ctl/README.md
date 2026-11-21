@@ -51,5 +51,6 @@ Output goes to `results/<date>_pytest.txt`.
 
 ## Last results
 
-**2026-11-14: 69/69 PASS** (62 shell with fakes, 7 ROS probe), three runs in a row,
+**2026-11-14: 69/69 PASS** (62 shell with fakes, 7 ROS probe), three runs in a row (once more after the
+shared `scripts/phone_ctl_lib.sh` + record fakes of #29: 69/69),
 ≈110 s each. `results/2026-11-14_pytest.txt`.

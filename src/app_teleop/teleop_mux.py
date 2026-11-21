@@ -54,6 +54,9 @@ class TeleopMux(Node):
         self.declare_parameter('nav_timeout', 0.5)
         self.declare_parameter('max_linear', 0.5)
         self.declare_parameter('max_angular', 1.0)
+        # -1 flips teleop steering: robot_control's "only Ackermann" mode negates angular.z
+        # (tuned for the gamepad), so rover_arming sets -1 there and +1 in crab mode.
+        self.declare_parameter('angular_sign', 1.0)
         self.declare_parameter('nav_topic', '/cmd_vel_auto')
         self.declare_parameter('out_topic', '/cmd_vel')
 
@@ -134,7 +137,8 @@ class TeleopMux(Node):
                 max_lin, max_ang = self.limits()
                 out.linear.x = clamp(cmd.linear.x, max_lin)
                 out.linear.y = clamp(cmd.linear.y, max_lin)
-                out.angular.z = clamp(cmd.angular.z, max_ang)
+                sign = -1.0 if self.get_parameter('angular_sign').value < 0 else 1.0
+                out.angular.z = sign * clamp(cmd.angular.z, max_ang)
         elif self.mode == 'autonomous':
             stamp, cmd = self.nav
             age = self.age(stamp)
