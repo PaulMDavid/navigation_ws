@@ -3,6 +3,7 @@
 #
 #   scripts/rover_bringup.sh        # prints the 3 commands to type: scan, connect, up
 #   scripts/rover_bringup.sh up     # starts everything (scripts/phone_ctl.sh up + camera)
+#   scripts/rover_bringup.sh ip     # orintwo's Wi-Fi network + address, for the phone app
 #
 # See ROVER_BRINGUP.md.
 set -uo pipefail
@@ -53,13 +54,26 @@ for line in sys.stdin:
     print("  [%s] %-10s %s" % (state, d.get("step", ""), d.get("reason", "")), flush=True)
 PY
 
+show_address() {
+  local net ip
+  net=$(nmcli -g GENERAL.CONNECTION dev show "$iface" 2>/dev/null)
+  ip=$(wifi_ip)
+  bold "orintwo Wi-Fi: ${net:-not connected}   address: ${ip:-none}"
+  if [[ -z $ip || -z $net || $net == eduroam ]]; then
+    echo "  !! not on your phone hotspot yet: run commands 1 and 2 first (scripts/rover_bringup.sh)"
+  else
+    echo "  Enter $ip as the robot address in the phone app."
+  fi
+}
+
 step_up() {
+  show_address
   bold "Starting everything"
   echo "Starts the teleop containers on orintwo and the wheels on the rover, checking each step."
   cmd "scripts/phone_ctl.sh up"
   pause
   "$repo/scripts/phone_ctl.sh" up | pretty
-  (( PIPESTATUS[0] == 0 )) || { echo "Logs of a step: scripts/phone_ctl.sh log <step>"; exit 1; }
+  (( PIPESTATUS[0] == 0 )) || { echo "Logs of a step: scripts/phone_ctl.sh log <step>"; show_address; exit 1; }
 
   bold "Camera for the phone app (first ZED start can take ~6 min)"
   cmd "scripts/phone_ctl.sh camera"
@@ -67,9 +81,8 @@ step_up() {
   "$repo/scripts/phone_ctl.sh" camera | pretty
   (( PIPESTATUS[0] == 0 )) || echo "Camera failed; driving works without it. Logs: scripts/phone_ctl.sh log camera"
 
-  local ip; ip=$(wifi_ip)
   bold "Ready to drive"
-  echo "  Phone app robot address: ${ip:-unknown, check: ip -4 addr show $iface}"
+  show_address
   echo "  Wheels page: press ARM once (it is a toggle), then drive from Controls."
   echo "  When done: scripts/phone_ctl.sh stop"
 }
@@ -77,5 +90,6 @@ step_up() {
 case ${1:-help} in
   help|wifi) step_wifi ;;
   up) step_up ;;
-  *) echo "usage: $0 [up]" >&2; exit 64 ;;
+  ip) show_address ;;
+  *) echo "usage: $0 [up|ip]" >&2; exit 64 ;;
 esac

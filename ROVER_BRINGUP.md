@@ -21,8 +21,8 @@ cd /mnt/ssd/pdavid/navigation_ws
    ```bash
    sudo nmcli dev wifi rescan ifname wlP1p1s0 ssid "<your hotspot>" && sleep 3 && sudo nmcli --ask dev wifi connect "<your hotspot>" ifname wlP1p1s0
    ```
-3. Start everything. It prints orintwo's hotspot address at the end; enter that address
-   in the phone app.
+3. Start everything. It prints orintwo's hotspot address first and again at the end;
+   enter that address in the phone app (`scripts/rover_bringup.sh ip` shows it any time).
    ```bash
    scripts/rover_bringup.sh up
    ```
