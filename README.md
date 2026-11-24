@@ -11,7 +11,7 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for the full topic graph, the transform t
 how the SLAM back-end is swapped without touching anything downstream.
 
 **Driving the rover with the phone:** [ROVER_BRINGUP.md](ROVER_BRINGUP.md)
-(`scripts/rover_bringup.sh`: join your phone hotspot, then start everything).
+(join your phone hotspot with nmcli, then `scripts/rover_bringup.sh up`).
 
 ## Packages
 
