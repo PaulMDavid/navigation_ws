@@ -14,10 +14,12 @@ cd /mnt/ssd/pdavid/navigation_ws
    ```bash
    sudo nmcli dev wifi list --rescan yes ifname wlP1p1s0
    ```
-2. Connect to your hotspot. Replace `<your hotspot>` with its name exactly as in the
-   list; nmcli then asks for the password.
+2. Connect to your hotspot. Replace `<your hotspot>` (both times) with its name exactly
+   as in the list; nmcli then asks for the password. It scans again first: orintwo
+   drops a phone hotspot from its list within seconds, and connect then fails with
+   "No network with SSID ... found".
    ```bash
-   sudo nmcli --ask dev wifi connect "<your hotspot>" ifname wlP1p1s0
+   sudo nmcli dev wifi rescan ifname wlP1p1s0 ssid "<your hotspot>" && sleep 3 && sudo nmcli --ask dev wifi connect "<your hotspot>" ifname wlP1p1s0
    ```
 3. Start everything. It prints orintwo's hotspot address at the end; enter that address
    in the phone app.
@@ -50,7 +52,8 @@ Logs of a step: `scripts/phone_ctl.sh log <preflight|teleop|rover_link|wheels|ca
 | --- | --- |
 | "logged in over orintwo's Wi-Fi" | log in over the cable: `ssh orintwo@192.168.1.210` |
 | hotspot not in the scan list | phone hotspot on? Set it to 2.4 GHz, run the scan (command 1) again |
-| connect fails | wrong password or out of range; run command 2 again |
+| connect: "No network with SSID … found" | the hotspot dropped out of the list; run command 2 again (it rescans first) |
+| connect fails otherwise | wrong password, or phone hotspot not on 2.4 GHz / WPA2-Personal |
 | `rover_link` XX | ethernet cable to the rover, rover powered? `ping 192.168.1.230` |
 | `wheels` XX: MD80 failed after 3 retries | check the CAN cable, power-cycle the motors, run `scripts/rover_bringup.sh up` |
 | `wheels` XX: port held | an old tmux session holds the motors: `ssh rover@192.168.1.230 tmux kill-session -t wheels` |

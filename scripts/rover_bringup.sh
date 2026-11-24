@@ -23,9 +23,11 @@ step_wifi() {
   echo "   phone hotspot to 2.4 GHz and run the scan again."
   cmd "sudo nmcli dev wifi list --rescan yes ifname $iface"
   echo
-  echo "2. Connect to your hotspot. Replace <your hotspot> with its name exactly as in the"
-  echo "   list; nmcli then asks for the password."
-  cmd "sudo nmcli --ask dev wifi connect \"<your hotspot>\" ifname $iface"
+  echo "2. Connect to your hotspot. Replace <your hotspot> (both times) with its name exactly"
+  echo "   as in the list; nmcli then asks for the password. It scans again first: orintwo"
+  echo "   drops a phone hotspot from its list within seconds, and then connect says"
+  echo "   \"No network with SSID ... found\"."
+  cmd "sudo nmcli dev wifi rescan ifname $iface ssid \"<your hotspot>\" && sleep 3 && sudo nmcli --ask dev wifi connect \"<your hotspot>\" ifname $iface"
   echo
   echo "3. Start everything. It prints orintwo's hotspot address at the end; enter that"
   echo "   address in the phone app."
