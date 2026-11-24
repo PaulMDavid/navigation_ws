@@ -14,13 +14,14 @@ cd /mnt/ssd/pdavid/navigation_ws
    ```bash
    sudo nmcli dev wifi list --rescan yes ifname wlP1p1s0
    ```
-2. Connect to your hotspot. Replace `<your hotspot>` (both times) with its name exactly
-   as in the list; nmcli then asks for the password. It scans again first: orintwo
-   drops a phone hotspot from its list within seconds, and connect then fails with
-   "No network with SSID ... found".
+2. Connect to your hotspot. Replace `<your hotspot>` (all 3 times) with its name exactly
+   as in the list; nmcli then asks for the password. This saves a connection and brings it
+   up (it scans by itself). A plain `nmcli dev wifi connect` often fails with "No network
+   with SSID … found", because orintwo drops a phone hotspot from its list within seconds.
    ```bash
-   sudo nmcli dev wifi rescan ifname wlP1p1s0 ssid "<your hotspot>" && sleep 3 && sudo nmcli --ask dev wifi connect "<your hotspot>" ifname wlP1p1s0
+   sudo nmcli con add type wifi ifname wlP1p1s0 con-name "<your hotspot>" ssid "<your hotspot>" wifi-sec.key-mgmt wpa-psk && sudo nmcli --ask con up "<your hotspot>"
    ```
+   Next time the connection already exists: `sudo nmcli --ask con up "<your hotspot>"`.
 3. Start everything. It prints orintwo's hotspot address first and again at the end;
    enter that address in the phone app (`scripts/rover_bringup.sh ip` shows it any time).
    ```bash
@@ -52,7 +53,7 @@ Logs of a step: `scripts/phone_ctl.sh log <preflight|teleop|rover_link|wheels|ca
 | --- | --- |
 | "logged in over orintwo's Wi-Fi" | log in over the cable: `ssh orintwo@192.168.1.210` |
 | hotspot not in the scan list | phone hotspot on? Set it to 2.4 GHz, run the scan (command 1) again |
-| connect: "No network with SSID … found" | the hotspot dropped out of the list; run command 2 again (it rescans first) |
+| `con add` says the connection exists | it was saved before: `sudo nmcli --ask con up "<your hotspot>"` |
 | connect fails otherwise | wrong password, or phone hotspot not on 2.4 GHz / WPA2-Personal |
 | `rover_link` XX | ethernet cable to the rover, rover powered? `ping 192.168.1.230` |
 | `wheels` XX: MD80 failed after 3 retries | check the CAN cable, power-cycle the motors, run `scripts/rover_bringup.sh up` |
