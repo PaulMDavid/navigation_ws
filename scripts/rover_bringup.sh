@@ -37,10 +37,11 @@ step_wifi() {
   ask "Press Enter when it is on." >/dev/null
 
   bold "1a. Scan for Wi-Fi networks"
-  cmd "nmcli dev wifi rescan ifname $iface; nmcli dev wifi list ifname $iface"
+  # a scan needs root here (polkit: wifi.scan = auth); without sudo nmcli only lists the cache
+  cmd "sudo nmcli dev wifi list --rescan yes ifname $iface"
   pause
-  nmcli dev wifi rescan ifname "$iface" 2>/dev/null; sleep 3
-  nmcli dev wifi list ifname "$iface"
+  sudo nmcli dev wifi list --rescan yes ifname "$iface" \
+    || echo "Scan failed; the list may be old. Wait a few seconds and run the step again."
   echo "Your hotspot must be in this list. If not: check the phone, then run this step again."
 
   local ssid

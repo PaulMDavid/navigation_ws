@@ -15,10 +15,10 @@ It walks you through two steps, shows every command before it runs it, and waits
 
 Turn on the hotspot on your phone. The script then:
 
-1. scans for Wi-Fi networks so you can find your hotspot:
+1. scans for Wi-Fi networks so you can find your hotspot (needs sudo: without it
+   nmcli only shows the old cached list):
    ```bash
-   nmcli dev wifi rescan ifname wlP1p1s0
-   nmcli dev wifi list ifname wlP1p1s0
+   sudo nmcli dev wifi list --rescan yes ifname wlP1p1s0
    ```
 2. asks for your hotspot name (SSID) and connects; nmcli asks for the password:
    ```bash
