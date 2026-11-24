@@ -5,7 +5,7 @@
 source "$(dirname "$0")/_ev"
 n=$(( $(cat "$FAKE/launches" 2>/dev/null || echo 0) + 1 )); echo $n > "$FAKE/launches"
 [[ " $* " == *" launch morpheus_control morpheus_control.launch.py "* ]] || { echo "fake ros2: unexpected $*" >&2; exit 2; }
-[[ -z ${CYCLONEDDS_URI+x} ]] || ev "CYCLONEDDS_URI set: $CYCLONEDDS_URI"
+ev "dds RMW=${RMW_IMPLEMENTATION:-} DOMAIN=${ROS_DOMAIN_ID:-} URI=${CYCLONEDDS_URI:-}"
 exec 3<>"$MD80_PORT"
 ev "launch $n start"
 trap 'ev "launch $n stop"; exit 0' INT

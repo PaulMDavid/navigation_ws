@@ -386,7 +386,8 @@ refused command gives `{"step": "command", "state": "fail", "reason": "refused: 
 
 **Rover side** (`scripts/robot_setup/rover/`): `rover-wheels.service` is a systemd user
 unit (linger on) that runs `rover_wheels_run.sh`: `ros2 launch morpheus_control
-morpheus_control.launch.py` from `~/erc25/wheels_ws/install`, without `CYCLONEDDS_URI`,
+morpheus_control.launch.py` from `~/erc25/wheels_ws/install` with Cyclone DDS pinned to
+eth0 (`cyclonedds_rover.xml`, set in the runner because the unit skips `~/.bashrc`, #49),
 logging to `/tmp/wheels.log`. If the log shows `Failed to add MD80 with ID: <id>` it stops
 the launch, waits until `/dev/ttyACM0` is free, runs `mdtool encoder <id>` (SIGINT after
 5 s) with 3 s before and after, and relaunches; after 3 retries it gives up with that id.

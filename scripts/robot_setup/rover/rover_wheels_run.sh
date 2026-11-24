@@ -4,8 +4,9 @@
 #
 #   ros2 launch morpheus_control morpheus_control.launch.py   (native ROS, no docker)
 #
-# CYCLONEDDS_URI stays unset: the rover's ~/.config/cyclonedds.xml is malformed and kills
-# nodes. Output goes to $WHEELS_LOG (/tmp/wheels.log, emptied at each service start).
+# DDS: Cyclone with cyclonedds_rover.xml (pinned to eth0), set explicitly because the unit
+# doesn't read ~/.bashrc (issue #49); the rover's ~/.config/cyclonedds.xml is malformed and
+# kills nodes, so it is never used. Output goes to $WHEELS_LOG (/tmp/wheels.log, emptied at each service start).
 # If the log shows "Failed to add MD80 with ID: <id>": stop the launch, wait until
 # /dev/ttyACM0 is free, `mdtool encoder <id>` (interrupted with SIGINT after 5 s), wait,
 # relaunch; give up after $MD80_RETRIES relaunches. State for rover_wheels_ctl.sh status
@@ -15,7 +16,9 @@ here=$(cd "$(dirname "$0")" && pwd)
 # shellcheck source=rover_wheels_common.sh
 source "$here/rover_wheels_common.sh"
 
-unset CYCLONEDDS_URI
+[[ -r $WHEELS_DDS_XML ]] || { echo "DDS config $WHEELS_DDS_XML missing" >&2; exit 1; }
+export RMW_IMPLEMENTATION=$WHEELS_RMW ROS_DOMAIN_ID=$WHEELS_DOMAIN_ID
+export CYCLONEDDS_URI=file://$WHEELS_DDS_XML
 set +u   # the ROS setup files reference unset variables
 # shellcheck disable=SC1090
 source "$ROS_SETUP" || { echo "can't source $ROS_SETUP" >&2; exit 1; }
