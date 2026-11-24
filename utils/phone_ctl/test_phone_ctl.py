@@ -111,7 +111,9 @@ def test_up_all_green(env):
     ev = ev_texts(env)
     assert 'compose up app_teleop app_foxglove_bridge app_rover_arming app_nav_relay TELEOP_SOURCE=phone cwd=src' in ev
     assert 'probe rover_cmd reset --timeout 5' in ev
-    assert not any('CYCLONEDDS_URI set' in t for t in ev), 'rover launch must not see CYCLONEDDS_URI'
+    # issue #49: Cyclone pinned by the rover's own XML, never the inherited/bashrc one
+    xml = ROVER / 'cyclonedds_rover.xml'
+    assert f'dds RMW=rmw_cyclonedds_cpp DOMAIN=0 URI=file://{xml}' in ev, ev
 
 
 def test_up_ssh_options(env):

@@ -7,7 +7,6 @@ Description=Rover wheels controller (morpheus_control) with MD80 auto-retry
 [Service]
 Type=simple
 EnvironmentFile=-%h/.config/rover-wheels.env
-UnsetEnvironment=CYCLONEDDS_URI
 ExecStart=@DIR@/rover_wheels_run.sh
 # SIGINT to the runner, which hands it to ros2 launch; SIGKILL to the rest after 20 s
 KillMode=mixed

@@ -1,0 +1,22 @@
+<!-- Cyclone DDS for the rover's wheels stack (rover_wheels_run.sh sets CYCLONEDDS_URI to
+     this file). Pinned to the wired link eth0: with the rover also on eduroam, DDS on
+     wlan0 broke /joy from orintwo (issue #49). Same peers as src/config/dds/cyclonedds.xml.
+     The rover's own ~/.config/cyclonedds.xml is malformed (Peers under General); not used. -->
+<CycloneDDS>
+  <Domain>
+    <General>
+      <AllowMulticast>spdp</AllowMulticast>
+      <Interfaces>
+        <NetworkInterface name="eth0"/>
+      </Interfaces>
+    </General>
+    <Discovery>
+      <Peers>
+        <Peer Address="192.168.1.100"/>
+        <Peer Address="192.168.1.105"/>
+        <Peer Address="192.168.1.210"/>
+        <Peer Address="192.168.1.230"/>
+      </Peers>
+    </Discovery>
+  </Domain>
+</CycloneDDS>

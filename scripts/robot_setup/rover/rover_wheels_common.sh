@@ -4,6 +4,11 @@
 [[ -r ${ROVER_WHEELS_ENV:-$HOME/.config/rover-wheels.env} ]] && \
   source "${ROVER_WHEELS_ENV:-$HOME/.config/rover-wheels.env}"
 ROS_SETUP=${ROS_SETUP:-/opt/ros/humble/setup.bash}
+# DDS for the launch, set here because systemd and ssh skip ~/.bashrc (issue #49:
+# without them the wheels ran Fast DDS and lost most of /cmd_vel from orintwo)
+WHEELS_RMW=${WHEELS_RMW:-rmw_cyclonedds_cpp}
+WHEELS_DOMAIN_ID=${WHEELS_DOMAIN_ID:-0}
+WHEELS_DDS_XML=${WHEELS_DDS_XML:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/cyclonedds_rover.xml}
 WHEELS_WS=${WHEELS_WS:-$HOME/erc25/wheels_ws}
 WHEELS_LOG=${WHEELS_LOG:-/tmp/wheels.log}
 WHEELS_STATE=${WHEELS_STATE:-/tmp/rover-wheels.state}

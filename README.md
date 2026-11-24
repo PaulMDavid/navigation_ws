@@ -10,6 +10,9 @@ testing, or together on the rover.
 See [ARCHITECTURE.md](ARCHITECTURE.md) for the full topic graph, the transform tree, and
 how the SLAM back-end is swapped without touching anything downstream.
 
+**Driving the rover with the phone:** [ROVER_BRINGUP.md](ROVER_BRINGUP.md), hotspot +
+one-shot bring-up.
+
 ## Packages
 
 | Package | Role |
