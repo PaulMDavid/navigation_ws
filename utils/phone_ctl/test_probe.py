@@ -11,6 +11,7 @@ import pytest
 import rclpy
 from rclpy.executors import SingleThreadedExecutor
 from rclpy.node import Node
+from rclpy.qos import qos_profile_sensor_data
 from sensor_msgs.msg import CompressedImage, Joy
 from std_msgs.msg import String
 
@@ -94,7 +95,8 @@ def test_rover_cmd_refused(stack):
 
 def test_rate_phone_domain(stack):
     side = Side(PHONE, 'test_camera')
-    pub = side.node.create_publisher(CompressedImage, '/teleop/camera/compressed', 10)
+    # best-effort like teleop_camera.py: a reliable probe got nothing from it on orintwo (2026-11-24)
+    pub = side.node.create_publisher(CompressedImage, '/teleop/camera/compressed', qos_profile_sensor_data)
     stop = threading.Event()
 
     def feed():

@@ -51,6 +51,12 @@ Output goes to `results/<date>_pytest.txt`.
 
 ## Last results
 
+**2026-11-24 (2): 69/69 PASS** after two orintwo findings: the camera step starts
+`app_robot_state_publisher` (the ZED waited for static TF forever), and the `rate` probe
+subscribes best-effort (the relay is best-effort, so a reliable probe never got a frame;
+`test_probe.py` now publishes best-effort too). On orintwo: probe `ok 10.1` Hz, `status`
+all green with 8 MD80s added.
+
 **2026-11-24: 69/69 PASS** after the rover DDS fix (#49): the fake launch now checks the
 wheels see `rmw_cyclonedds_cpp`, domain 0 and `cyclonedds_rover.xml`. 109 s.
 `results/2026-11-24_pytest.txt`. The XML itself was checked on the rover: `ros2 topic

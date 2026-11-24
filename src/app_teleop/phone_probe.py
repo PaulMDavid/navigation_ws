@@ -21,6 +21,7 @@ import sys
 import time
 
 import rclpy
+from rclpy.qos import qos_profile_sensor_data
 from rclpy.executors import SingleThreadedExecutor
 from rclpy.node import Node
 from sensor_msgs.msg import CompressedImage
@@ -99,7 +100,8 @@ def check_rate(a):
     p = Probe(PHONE_DOMAIN if a.phone else None)
     stamps = []
     try:
-        p.node.create_subscription(CompressedImage, a.topic, lambda _m: stamps.append(time.monotonic()), 10)
+        p.node.create_subscription(CompressedImage, a.topic, lambda _m: stamps.append(time.monotonic()),
+                                  qos_profile_sensor_data)  # relay publishes best-effort
         # wait for the first frame (teleop_camera is lazy: our subscription switches it on)
         if not p.spin_until(lambda: stamps, a.timeout):
             return False, f'no message on {a.topic} within {a.timeout:g} s'

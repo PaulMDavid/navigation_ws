@@ -386,7 +386,7 @@ def test_camera(env, hz, state):
     _, lines = run(env, 'camera')
     c = final(lines)['camera']
     assert c['state'] == state and hz in c['reason']
-    assert 'compose up app_zed2i_camera app_teleop_camera TELEOP_SOURCE= cwd=src' in ev_texts(env)
+    assert 'compose up app_robot_state_publisher app_zed2i_camera app_teleop_camera TELEOP_SOURCE= cwd=src' in ev_texts(env)
     assert 'probe rate /teleop/camera/compressed --phone --window 3 --timeout 10' in ev_texts(env)
 
 

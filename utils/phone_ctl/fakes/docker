@@ -5,13 +5,14 @@ source "$(dirname "$0")/_ev"
 c=$FAKE/containers; mkdir -p "$c"
 declare -A name=([app_teleop]=app_teleop_container [app_foxglove_bridge]=app_foxglove_bridge_container
                  [app_rover_arming]=app_rover_arming_container [app_nav_relay]=app_nav_relay_container [app_teleop_camera]=app_teleop_camera_container
-                 [app_zed2i_camera]=app_zed2i_camera)
+                 [app_zed2i_camera]=app_zed2i_camera [app_robot_state_publisher]=app_robot_state_publisher_container)
 case $1 in
   inspect) [[ -e $c/${*: -1} ]] && echo true || { echo false; exit 1; } ;;
   compose)
     shift; [[ $1 == -p ]] && shift 2
     verb=$1; shift
     [[ $1 == -d ]] && shift
+    [[ $1 == --no-deps ]] && shift
     ev "compose $verb $* TELEOP_SOURCE=${TELEOP_SOURCE:-} cwd=$(basename "$PWD")"
     [[ -e $FAKE/compose_fail ]] && { echo "Error response from daemon: boom"; exit 1; }
     for s in "$@"; do

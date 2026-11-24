@@ -37,9 +37,11 @@ md80_retries=${MD80_RETRIES:-3}
 
 teleop_services=(app_teleop app_foxglove_bridge app_rover_arming app_nav_relay)
 camera_services=(app_zed2i_camera app_teleop_camera)
+# the ZED waits for base_link → camera from the URDF ("Waiting for valid static transformations")
+tf_service=app_robot_state_publisher
 declare -A container=([app_teleop]=app_teleop_container [app_foxglove_bridge]=app_foxglove_bridge_container
                       [app_rover_arming]=app_rover_arming_container [app_nav_relay]=app_nav_relay_container [app_teleop_camera]=app_teleop_camera_container
-                      [app_zed2i_camera]=app_zed2i_camera)
+                      [app_zed2i_camera]=app_zed2i_camera [app_robot_state_publisher]=app_robot_state_publisher_container)
 steps=(preflight teleop rover_link wheels camera)
 ids_ok=(11 12 13 14)
 
@@ -232,8 +234,8 @@ up_wheels() {
 
 up_camera() {
   local out deadline next=$((SECONDS + 30))
-  emit camera running "docker compose up -d ${camera_services[*]}"
-  out=$(compose up -d "${camera_services[@]}" 2>&1) \
+  emit camera running "docker compose up -d $tf_service ${camera_services[*]}"
+  out=$(compose up -d --no-deps "$tf_service" "${camera_services[@]}" 2>&1) \
     || { set_ck fail "compose up failed: $(lastline "$out" '?')"; return; }
   deadline=$((SECONDS + camera_timeout))
   while :; do
@@ -248,7 +250,7 @@ up_camera() {
 }
 check_camera_up() {
   local s
-  for s in "${camera_services[@]}"; do
+  for s in "$tf_service" "${camera_services[@]}"; do
     running "${container[$s]}" || { set_ck fail "$s not running"; return 1; }
   done
   camera_rate 10
